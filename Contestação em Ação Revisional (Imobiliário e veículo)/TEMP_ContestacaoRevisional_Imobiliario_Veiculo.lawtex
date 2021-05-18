@@ -1,7 +1,8 @@
 template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] { 
 	metainfo { 
 		language = "pt_BR"
-		name = "Contestação em Ação Revisonal (Imobiliário e veículo)"
+		name = "Contestação em Ação Revisional (Imobiliário e veículo)"
+		style = "STY_ContestacaoAcaoRevisional.lawsty"
 		declarations {
 			//Constantes
 			-#parag# : String {value = "<p class = 'paragrafo'>"},
@@ -20,7 +21,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			+<strModelo> : Struct {
 				name = "Modelo"
 				fields {
-					+[modelo] : List ("Revisonal imobiliária", "Revisonal veículo") {
+					+[modelo] : List ("Revisional imobiliária", "Revisional veículo") {
 						name = "Modelo"
 						request = "Selecione o modelo da defesa"
 						atomic = true
@@ -123,7 +124,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			+<strPreliminares> : Struct {
 				name = "Preliminares"
 				fields {
-					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
 						+[alegaJG] : Boolean {
 							name = "Justiça gratuita"
 							request = "O autor requereu justiça gratuita?"
@@ -158,7 +159,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						name = "Valor da causa"
 						request = "Informe o valor da causa"
 					},
-					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
 						+[dataDaCelebracao] : Date {
 							name = "Data da celebração"
 							request = "Informe a data da celebração do contrato"
@@ -173,7 +174,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						name = "Tutela provisória"
 						request = "Houve pedido de tutela provisória em caráter de urgência?"
 					},
-					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
 						+[repeticaoDeindebito] : Boolean {
 							name = "Repetição de indébito"
 							request = "Houve pedido de repetição de indébito?"
@@ -197,7 +198,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						request = "Informe o período o qual o autor ficou inadimplente"
 						atomic = true
 					},
-					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
+						+[coberturas] : List ("Morte e invalidez permanente", "Danos físicos no imóvel") {
+							name = "Coberturas"
+							request = "Selecione a cobertura do contrato"
+							atomic = false
+						},
 						+[operacao] : Currency {
 							name = "Operação"
 							request = "Informe o valor da operação"
@@ -285,11 +291,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						-[taxaDeJurosMensal] : Currency,
 						+[exclusaoDaTaxa] : Date {
 							name = "Exclusão da taxa"
-							request = "Infome a data da planilha que consta a exclusão da taxa"
+							request = "Informe a data da planilha que consta a exclusão da taxa"
 						},
 						+[incorporacaoDeSaldo] : Date {
 							name = "Incorporação de saldo"
-							request = "Infome a data da planilha que consta a incorporação de saldo"
+							request = "Informe a data da planilha que consta a incorporação de saldo"
 						},
 						+[saldoDevedor] : Currency {
 							name = "Saldo devedor"
@@ -333,7 +339,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					}	
 				}
 				loaders {
-					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
 						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento"} 
 					} else {
 						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Planilha de evolução do contrato"}
@@ -379,8 +385,10 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
  			branch[BRC_Enderecamento] {
 				operations {
 					print bold("Ao Juízo do 16º Juizado Especial Federal ") & bold("da Comarca de Goiânia/GO.") & #dbl#,
-					print "Protocolo n.:\t1024522-21.2019.4.01.3500",
-					print "Parte Autora:\tElismar Rafael da Silva e Outra",
+					print #dbl#,
+					print #dbl#,
+					print "Protocolo n.:\t",
+					print "Parte Autora:\t",
 					print "Parte Ré:\t\tCaixa Econômica Federal"
 				}
 			},
@@ -832,5 +840,56 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			use TOP_Pedidos,
 			use BRC_Encerramento
 		}
+ 	}
+ 	foot {
+ 		declarations {
+ 			branch[TOC_InformacoesGerais] {
+				name = "Informações gerais"
+				index = true
+				operations {
+					<strModelo>.ask(),
+					<strDadosDoProcesso>.ask()
+				}	
+			},
+			branch[TOC_Partes] {
+				name = "Partes"
+				index = true
+				operations {
+					|vectAutor|.ask()
+					//|vectReu|.ask()
+				}	
+			},
+			branch[TOC_Preliminares_Fatos] {
+				name = "Preliminares e fatos"
+				index = true
+				operations {
+					<strPreliminares>.ask(),
+					<strBreveHistorico>.ask()
+				}	
+			},
+			branch[TOC_InformacoesMerito] {
+				name = "Informações de mérito"
+				index = true
+				operations {
+					<strMerito>.ask(),
+					<strInfoContratuais>.ask()
+				}	
+			},
+			branch[TOC_Encerramento] {
+				name = "Encerramento"
+				index = true
+				operations {
+					<strDocumentos>.ask(),
+					<strEncerramento>.ask()
+				}	
+			}
+ 		}
+ 		operations {
+ 			use TOC_InformacoesGerais,
+ 			use TOC_Partes,
+ 			use TOC_Preliminares_Fatos,
+ 			use TOC_InformacoesMerito,
+ 			use TOC_Encerramento
+ 		}
  	}
 }
