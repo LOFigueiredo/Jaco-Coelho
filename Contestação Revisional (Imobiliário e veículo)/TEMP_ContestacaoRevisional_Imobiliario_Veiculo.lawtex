@@ -1,22 +1,387 @@
 template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] { 
 	metainfo { 
 		language = "pt_BR"
-		name = "Contestação Revisonal (Imobiliário e veículo)"
+		name = "Contestação em Ação Revisonal (Imobiliário e veículo)"
 		declarations {
-			
+			//Constantes
+			-#parag# : String {value = "<p class = 'paragrafo'>"},
+			-#dbl# : String {value = "</p>\b\b"},
+			//Listas
+			list[ListaAdvogados_JacoCoelho] {
+				fields = {"Nome", "OAB"}
+				options = ({"Allinne Rizzie Coelho Oliveira Garcia","OAB/GO 24.549"}, 
+										{"Claudinéia Santos Pereira","OAB/GO 22.376"},
+										{"Lucimer Coelho de Freitas","OAB/GO 33.001"},
+										{"Fabiane Gomes Pereira","OAB/GO 30.485"},
+										{"Daniele de Faria Ribeiro Gonzaga","OAB/GO 36.528"})
+				type = "String"
+			},
+			//Estruturas
+			+<strModelo> : Struct {
+				name = "Modelo"
+				fields {
+					+[modelo] : List ("Revisonal imobiliária", "Revisonal veículo") {
+						name = "Modelo"
+						request = "Selecione o modelo da defesa"
+						atomic = true
+					}
+				}
+			},
+			+<strDadosDoProcesso> : Struct {
+				name = "Dados do processo"
+				fields {
+					+[numero] : String where ("\d\d\d\d\d\d\d-\d\d.\d\d\d\d.\d.\d\d.\d\d\d\d") {
+						name = "Número do processo"
+					},
+					+[ehVaraOuJuizado] : List ("Juizado especial federal", "Vara federal") {
+						name = "A ação foi proposta em vara federal ou juizado especial federal?"
+						atomic = true
+					},
+					+[vara] : Integer where ("\d\r") {
+						name = "Vara"
+					},
+					+[comarca] : String {
+						name = "Comarca"
+					},
+					+[uf] : List [*Uf] {
+						name = "Estado de tramitação"
+						atomic = true
+					}
+				}
+			},
+			+|vectAutor| : Vector[Struct] {
+				name = "Autor"
+				id = [nome] 
+				fields {
+					+[nome] : String {
+						name = "Nome"
+						request = "Informe o nome do autor"
+					},
+					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
+						name = "Tipo de pessoa"
+						request = "Selecione o tipo de pessoa"
+						atomic = true
+						default = "Pessoa Jurídica"
+					},
+					-[genero] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						request = "Selecione o gênero do autor"
+						help = "É necessário selecionar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+						default = "Feminino"
+					}
+				}
+				loaders {
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						[genero].default = "Feminino"
+					} else {
+						[genero].mandatory = "+"
+					}
+				}
+			},
+			/*+|vectReu| : Vector[Struct] {
+				name = "Réu"
+				fields {
+					+[nome] : String {
+						name = "Nome"
+						request = "Informe o nome do réu"
+					},
+					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
+						name = "Tipo de pessoa"
+						request = "Selecione o tipo de pessoa"
+						atomic = true
+						default = "Pessoa Jurídica"
+					},
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						+[cnpj] : String where ("CNPJ") {
+							name = "CNPJ"
+							request = "Informe o CNPJ do réu"
+						}
+					} else {
+						+[cpf] : String where ("CPF") {
+							name = "CPF"
+							request = "Informe o CPF do réu"
+						}
+					},
+					-[genero] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						request = "Selecione o gênero do réu"
+						help = "É necessário informar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+					}
+				}
+				loaders {
+					[nome].default = "Caixa Econômica Federal",
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						[genero].default = "Feminino",
+						[cnpj].default = "00.360.305/0001-04"
+					} else {
+						[genero].mandatory = "+"
+					}
+				}
+			},*/
+			+<strPreliminares> : Struct {
+				name = "Preliminares"
+				fields {
+					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+						+[alegaJG] : Boolean {
+							name = "Justiça gratuita"
+							request = "O autor requereu justiça gratuita?"
+						},
+						if([alegaJG]) {
+							+[declaracaoHipossuficiencia] : Boolean {
+								name = "Declaração de hipossuficiência"
+								request = "O autor juntou declaração de hipossuficiência?"
+							},
+							+[declaracaoHipossuficiencia] : Boolean {
+								name = "Declaração de hipossuficiência"
+								request = "O autor está representado por advogado particular?"
+							}
+						}
+					} else {
+						+[valoresIncontroversos] : Boolean {
+							name = "Depósito de valores incontroversos"
+							request = "Houve alegação de depósito de valores incontroversos?"
+						},
+						if([valoresIncontroversos]) {
+							+[ocorreuDeposito] : Boolean {
+								name = "O depósito de fato ocorreu?"
+							}
+						}
+					}
+				}
+			},
+			+<strBreveHistorico> : Struct {
+				name = "Breve histórico"
+				fields {
+					+[valorDaCausa] : Currency {
+						name = "Valor da causa"
+						request = "Informe o valor da causa"
+					},
+					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+						+[dataDaCelebracao] : Date {
+							name = "Data da celebração"
+							request = "Informe a data da celebração do contrato"
+						}
+					} 
+				}
+			},
+			+<strMerito> : Struct {
+				name = "Mérito"
+				fields {
+					+[tutelaProvisória] : Boolean {
+						name = "Tutela provisória"
+						request = "Houve pedido de tutela provisória em caráter de urgência?"
+					},
+					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+						+[repeticaoDeindebito] : Boolean {
+							name = "Repetição de indébito"
+							request = "Houve pedido de repetição de indébito?"
+						},
+						+[inversaoOnus] : Boolean {
+							name = "Inversão do ônus da prova"
+							request = "Deseja inserir tópico que trata da inversão do ônus da prova?"
+						}
+					}	
+				}	
+			},
+			+<strInfoContratuais> : Struct {
+				name = "Informações contratuais" 
+				fields {
+					+[numeroDoContrato] : String {
+						name = "Número do contrato"
+						request = "Informe o número do contrato"
+					},
+					+[periodoInadimplencia] : List ("Dias", "Meses", "Anos") {
+						name = "Período de inadimplência"
+						request = "Informe o período o qual o autor ficou inadimplente"
+						atomic = true
+					},
+					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+						+[operacao] : Currency {
+							name = "Operação"
+							request = "Informe o valor da operação"
+						},
+						+[avaliacao] : Currency {
+							name = "Avaliação"
+							request = "Informe o valor da avaliação"
+						},
+						+[rendaFamiliar] : Currency {
+							name = "Renda familiar"
+							request = "Informe o valor da renda familiar"
+						},
+						+|vectResponsabilidade| : Vector[Struct] {
+							name = "Responsabilidade"
+							fields {
+								+[responsavel] : String {
+									name = "Responsável"
+									request = "Selecione o responsável"
+								},
+								+[percentual] : Real where ("[0,100]") {
+									name = "Percentual"
+									request = "Informe o percentual de responsabilidade"
+								}
+							}
+						},
+						+[strEnderecoImovel] : Struct {
+							name = "Endereço do imóvel"
+							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", na cidade de " & [cidade] & ", Estado " & [estado].getByKey("Preposição") & " " & [estado] & ", CEP: " & [codigoPostal]
+							fields {
+								+[codigoPostal] : String where("CEP") {
+									name = "CEP"
+									request = "CEP"
+								},
+								+[estado] : List[*Uf] {
+									name = "Unidade da Federação"
+									request = "UF"
+									default = "São Paulo"
+									atomic = true
+								},
+								+[cidade] : String {
+									name = "Cidade"
+									request = "Cidade"
+									default = "São Paulo"
+								},
+								+[logradouro] : String {
+									name = "Logradouro"
+									request = "Logradouro"
+									help = "Exemplo: Avenida Magalhães de Castro"
+								},
+								&[numero] : String {
+									name = "Número"
+									request = "Número"
+									help = "Por exemplo, se o endereço é Avenida Magalhães de Castro, nº 286, informe \"286\""
+								},
+								&[complemento] : String {
+									name = "Complemento"
+									request = "Complemento"
+									help = "Exemplo: apartamento 123, sala A, Bloco B"
+								},
+								&[bairro] : String {
+									name = "Bairro"
+									request = "Bairro"
+									help = "Exemplo: Centro, Bairro Novo"
+								}
+							}
+						},
+						+[prestacao] : Currency {
+							name = "Prestação"
+							request = "Informe o valor da prestação"
+							help = "O valor da prestação corresponde ao valor da amortização + juros"
+						},
+						+[premio] : Currency {
+							name = "Prêmio"
+							request = "Informe o valor do prêmio"
+						},
+						+[taxaOperacional] : Currency {
+							name = "Taxa operacional"
+							request = "Informe o valor da taxa operacional"
+						},
+						-[total] : Currency,
+						+[taxaDeJurosAnual] : Currency {
+							name = "Taxa de juros anual"
+							request = "Informe o valor da taxa de juros anual"
+						},
+						-[taxaDeJurosMensal] : Currency,
+						+[exclusaoDaTaxa] : Date {
+							name = "Exclusão da taxa"
+							request = "Infome a data da planilha que consta a exclusão da taxa"
+						},
+						+[incorporacaoDeSaldo] : Date {
+							name = "Incorporação de saldo"
+							request = "Infome a data da planilha que consta a incorporação de saldo"
+						},
+						+[saldoDevedor] : Currency {
+							name = "Saldo devedor"
+							request = "Informe o valor do saldo devedor"
+						}
+					} else {
+						+[operacao] : String {
+							name = "Operação"
+							request = "Informe a operação"
+							default = "7044 - Financiamento de Veículos PF"
+						},
+						+[cdi] : String {
+							name = "CDI"
+							request = "Informe a CDI"
+							default = "4389 - CDI ANUALIZADA - BASE 252"
+						}
+					}
+				}
+				loaders {
+					if([periodoInadimplencia] == "Dias") {
+						[periodoInadimplencia].default = "há dias"
+					},
+					if([periodoInadimplencia] == "Meses") {
+						[periodoInadimplencia].default = "há meses"
+					},
+					if([periodoInadimplencia] == "Anos") {
+						[periodoInadimplencia].default = "há anos"
+					},
+					|Metainfo:vectAutor.nome|.select(|vectResponsabilidade.responsavel|),
+					[total] = [prestacao] + [premio] + [taxaOperacional],
+					[taxaDeJurosMensal] = [taxaDeJurosAnual]/12 
+				}
+			},
+			+<strDocumentos> : Struct {
+				name = "Documentos"
+				fields {
+					+[documentos] : List ("Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento", "Planilha de evolução do contrato") {
+						name = "Documentos"
+						request = "Selecione os documentos que deseja juntar"
+						atomic = false
+					}	
+				}
+				loaders {
+					if([Metainfo:strModelo.modelo] == "Revisonal imobiliária") {
+						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento"} 
+					} else {
+						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Planilha de evolução do contrato"}
+					}
+				}
+			},
+			+<strEncerramento> : Struct {
+				name = "Encerramento"
+				fields {
+					+[dataPeticao] : Date {
+						name = "Data de assinatura"
+						default = today()
+					},
+					+[localAssinatura] : String {
+						name = "Local de assinatura"
+						request = "Cidade de assinatura"
+					},
+					+[estado] : List[*Uf] {
+						name = "Estado"
+						request = "Estado de assinatura"
+						atomic = true
+					},
+					&[listaDeAdvogados] : List[ListaAdvogados_JacoCoelho] {
+						name = "Advogado subscritor"
+						request = "Selecione o advogado que assinará a petição"
+						atomic = false
+						help = "Já consta assinatura do Dr. Jacó"
+					}
+				}
+			}
 		} 
 	} 
 	head { 
 		title = null
+		operations {
+			header("logo_jacoCoelho.png", "center"),
+			footer("foot_jacoCoelho.png", "center"),
+			setDocumentName("Contestação em Ação Revisional - " & <strDadosDoProcesso.numero>)
+		} 
  	} 
  	body {
  		declarations {
  			branch[BRC_Enderecamento] {
 				operations {
 					print bold("Ao Juízo do 16º Juizado Especial Federal ") & bold("da Comarca de Goiânia/GO.") & #dbl#,
-					print "Protocolo n.:	1024522-21.2019.4.01.3500",
-					print "Parte Autora:	Elismar Rafael da Silva e Outra",
-					print "Parte Ré:	Caixa Econômica Federal"
+					print "Protocolo n.:\t1024522-21.2019.4.01.3500",
+					print "Parte Autora:\tElismar Rafael da Silva e Outra",
+					print "Parte Ré:\t\tCaixa Econômica Federal"
 				}
 			},
 			branch[BRC_Qualificacao] {
@@ -425,17 +790,36 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 				}
 			},
 			branch[BRC_Encerramento] {
+				declarations {
+					-|advogadoQueAssina| : Vector[String] {
+						name = "Advogados que assinam a peça"
+					}
+				}
 				operations {
-					print "Termos em que, pede deferimento." & #dbl#,
-					print "Goiânia/GO, 8 de junho 2020." & #dbl#,
-					print "Jacó Carlos Silva Coelho	Allinne Rizzie Coelho Oliveira Garcia
-					OAB/GO n. 13.721	OAB/GO n. 24.549
-					 
-					Claudinéia Santos Pereira	Lucimer Coelho de Freitas
-					OAB/GO n. 22.376	OAB/GO n. 33.001
-					 
-					Fabiane Gomes Pereira	Daniele de Faria Ribeiro Gonzaga
-					OAB/GO n. 30.485	OAB/GO n. 36.528"
+					foreach(<advogado> IN |strAssinatura.listaDeAdvogados|) {
+						|advogadoQueAssina|.add(uppercase(bold(<advogado>.getByKey("Nome"))) & "\b" & bold(<advogado>.getByKey("OAB")) )
+					},
+					print #parag# & "Termos em que, pede deferimento.",
+					print #parag# & firstUpper(<strAssinatura.localAssinatura>) & "/" & <strAssinatura.estado>.getByKey("Sigla") & ", " & expandedDate(<strAssinatura.dataPeticao>) & "." & #dbl#,
+
+					print "<table style='width:100%'>",
+						print "<tr style='width:100%;height:110px'>",
+							print "<td style='width:50%'><b>Jacó Carlos Silva Coelho<br>OAB/GO 13.721</b></td>",
+						print "</tr>",
+						foreach(<i> IN [0:|advogadoQueAssina|.size() - 1]) {
+							if (<i>%2 == 1) { 
+								print "<tr style='width:100%; height:110px;'>",
+									print "<td style='width:50%'>" & bold(<advogadoQueAssina{<i> - 1}>) & "</td>",
+									print "<td style='width:50%'>" & bold(<advogadoQueAssina{<i>}>) & "</td>",
+								print "</tr>"
+							}
+							elseif (<i> == |advogadoQueAssina|.size() - 1){
+								print "<tr style='width:100%; height:110px;'>",
+									print "<td style='width:50%' colspan='2'>" & bold(<advogadoQueAssina{<i>}>) & "</td>",
+								print "</tr>"
+							} 
+						},
+					print "</table>"
 				}
 			}
  		}
