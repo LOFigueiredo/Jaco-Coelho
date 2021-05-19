@@ -284,11 +284,20 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							request = "Informe o valor da taxa operacional"
 						},
 						-[total] : Currency,
-						+[taxaDeJurosAnual] : Currency {
+						+[taxaDeJurosAnual] : Real {
 							name = "Taxa de juros anual"
 							request = "Informe o valor da taxa de juros anual"
 						},
-						-[taxaDeJurosMensal] : Currency,
+						-[taxaDeJurosMensal] : Real,
+						+[pagamentoPorDebitoAutomatico] : Boolean {
+							name = "O pagamento ocorreu via débito automático?"
+						},
+						if([pagamentoPorDebitoAutomatico]) {
+							+[taxaDeJurosAnualComDesconto] : Real {
+								name = "Taxa de juros anual com desconto"
+								request = "Informe o valor da taxa de juros anua com desconto"
+							}
+						},
 						+[exclusaoDaTaxa] : Date {
 							name = "Exclusão da taxa"
 							request = "Informe a data da planilha que consta a exclusão da taxa"
@@ -477,59 +486,85 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						declarations {
 							branch[BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario] {
 								operations {
-									print #parag# & "Alega a parte autora em sua inicial que os termos contratuais pactuados de mensalidades decrescentes do financiamento não estão sendo cumpridos por esta parte ré. Sendo assim, a parte ré vem aos autos esclarecer a este Juízo sobre os termos do contrato assinado e quais as condições pactuadas entre as partes." & #dbl#,
-									print #parag# & "O contrato habitacional refere-se ao financiamento nº 1444407062150, contratado em 30/09/2014, cuja origem dos recursos é SBPE com prazo de amortização de 420 (quatrocentos e vinte) meses, taxa de juros de 8,7873%a.a., e Sistema de Amortização SAC. A presente operação remontou em R$ 180.000,00 (cento e oitenta mil) tendo como garantia de alienação fiduciária o imóvel situado à Rua João Pessoa, Qd- 10 Lt- 05, Jardim Atlântico, Jaraguá-GO, avaliado à época em R$ 200.000,00 (duzentos mil reais)." & #dbl#,
-									print #parag# & "No ato da contratação, a renda familiar era de R$ 12.000,00, na seguinte composição: ELISMAR RAFAEL DA SILVA (66,67%) e ELIJAINE BORGES DE OLIVEIRA  (33,33%). O valor do encargo inicial foi calculado da seguinte forma:" & #dbl#,
-									print #parag# & "- Prestação (Amortização + Juros): R$ 1.692,25;" & #dbl#,
-									print #parag# & "- Prêmios de Seguro: R$ 54,31;" & #dbl#,
-									print #parag# & "- Taxa Operacional Mensal: R$ 25,00;" & #dbl#,
-									print #parag# & "- Total: R$ 1.771,56." & #dbl#,
+									print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras", "Alega a parte autora") & " em sua inicial que os termos contratuais pactuados de mensalidades decrescentes do financiamento não estão sendo cumpridos por esta parte ré. Sendo assim, a parte ré vem aos autos esclarecer a este Juízo sobre os termos do contrato assinado e quais as condições pactuadas entre as partes." & #dbl#,
+									print #parag# & "O contrato habitacional refere-se ao financiamento nº " & <strInfoContratuais.numeroDoContrato> & ", contratado em " & <strBreveHistorico.dataDaCelebracao> & ", cuja origem dos recursos é SBPE com prazo de amortização de 420 (quatrocentos e vinte) meses, taxa de juros de " & <strInfoContratuais.taxaDeJurosAnual> & "%a.a., e Sistema de Amortização SAC. A presente operação remontou em R$ " & <strInfoContratuais.operacao> & " (" & expandedCurrency(<strInfoContratuais.operacao>) & ") tendo como garantia de alienação fiduciária o imóvel situado à " & <strInfoContratuais.strEnderecoImovel> & ", avaliado à época em R$ " & <strInfoContratuais.avaliacao> & " (" & expandedCurrency(<strInfoContratuais.avaliacao>) & ")." & #dbl#,
+									print #parag# & "No ato da contratação, a renda familiar era de R$ " & <strInfoContratuais.rendaFamiliar> & ", na seguinte composição:",
+									foreach(<contratante> IN |vectResponsabilidade|) where (separator = "%f, %s, %p e %l") {
+										print uppercase(<contratante.responsavel>) & " (" & <contratante.percentual> & ")"
+									},
+									print "O valor do encargo inicial foi calculado da seguinte forma:" & #dbl#,
+									print #parag# & "- Prestação (Amortização + Juros): R$ " & <strInfoContratuais.prestacao> & ";" & #dbl#,
+									print #parag# & "- Prêmios de Seguro: R$ " & <strInfoContratuais.premio> & ";" & #dbl#,
+									print #parag# & "- Taxa Operacional Mensal: R$ " & <strInfoContratuais.taxaOperacional> & ";" & #dbl#,
+									print #parag# & "- Total: R$ " & <strInfoContratuais.total> & "." & #dbl#,
 									print #parag# & "O Saldo devedor do financiamento é atualizado no dia correspondente ao do aniversário do contrato, pelo mesmo índice de remuneração básica aplicado aos depósitos das contas de poupança/FGTS, que atualmente é a TR - Taxa Referencial, do dia correspondente ao vencimento dos encargos mensais." & #dbl#,
 									print #parag# & bold("A atualização do saldo devedor do contrato está ocorrendo conforme previsto contratualmente") & ", conforme se comprova na planilha de evolução da dívida e contrato anexos a esta defesa. As prestações serão recalculadas anualmente no dia correspondente ao da assinatura do contrato com base no saldo devedor atualizado, mantidos a taxa de juros, sistema de amortização contratados e prazo remanescente. Por ocasião do recálculo das prestações de amortização e juros, os prêmios de seguro são recalculados conforme critérios estabelecidos em Cláusula contratual." & #dbl#,
-									print #parag# & "A parcela de juros é recalculada mensalmente, em função do saldo devedor atualizado, da taxa de juros e do prazo remanescente e é calculada utilizando-se a fórmula de “juros simples” a seguir descrita, inexistindo capitalização de juros: " & bold("J = c i t / 100. ") & "A taxa de juros mensal é obtida mediante a divisão da taxa anual por 12 (8,7873%: 12) que no caso em análise resulta em 0,7323% ao mês." & #dbl#,
-									print #parag# & "Em relação à taxa de juros cobrada esclarece que a taxa de juros inicial pactuada é de 8,7873% a.a, reduzida para 8,4175% a.a. como um benefício em virtude de reciprocidade no relacionamento com a parte ré mediante o pagamento por meio de débito automático em conta/folha, e a contratação dos demais produtos constantes no contrato, via de regra crédito rotativo e cartão de crédito, mas que não se confunde com venda casada, uma vez que a qualquer momento o mutuário pode cancelar os produtos com o consequente cancelamento da redução da taxa de juros." & #dbl#,
-									print #parag# & bold("Consta na planilha de evolução que ocorreu a exclusão da taxa reduzida de juros em 30/01/2017") & bold(", em razão de inadimplência. ") & "Desta forma, constata-se que NÃO procede a alegação de cobrança de juros de forma capitalizada, cuja verificação pode realizada mediante o cálculo sobre qualquer saldo devedor atualizado monetariamente, conforme exemplos abaixo, nos quais verifica-se que não existiu nenhuma diferença em relação aos valores cobrados pela parte ré, mas eventualmente arredondamento de casas decimais. Vejamos:" & #dbl#,
+									print #parag# & "A parcela de juros é recalculada mensalmente, em função do saldo devedor atualizado, da taxa de juros e do prazo remanescente e é calculada utilizando-se a fórmula de “juros simples” a seguir descrita, inexistindo capitalização de juros: " & bold("J = c i t / 100. ") & "A taxa de juros mensal é obtida mediante a divisão da taxa anual por 12 (" & <strInfoContratuais.taxaDeJurosAnual> & "%: 12) que no caso em análise resulta em " & <strInfoContratuais.taxaDeJurosMensal> & "% ao mês." & #dbl#,
+									if(<strInfoContratuais.pagamentoPorDebitoAutomatico>) {
+										print #parag# & "Em relação à taxa de juros cobrada esclarece que a taxa de juros inicial pactuada é de " & <strInfoContratuais.taxaDeJurosAnual> & "% a.a, reduzida para " & <strInfoContratuais.taxaDeJurosAnualComDesconto> & "% a.a. como um benefício em virtude de reciprocidade no relacionamento com a parte ré mediante o pagamento por meio de débito automático em conta/folha, e a contratação dos demais produtos constantes no contrato, via de regra crédito rotativo e cartão de crédito, mas que não se confunde com venda casada, uma vez que a qualquer momento o mutuário pode cancelar os produtos com o consequente cancelamento da redução da taxa de juros." & #dbl#
+									},
+									print #parag# & bold("Consta na planilha de evolução que ocorreu a exclusão da taxa reduzida de juros em " & <strInfoContratuais.exclusaoDaTaxa> & ", em razão de inadimplência.") & " Desta forma, constata-se que NÃO procede a alegação de cobrança de juros de forma capitalizada, cuja verificação pode realizada mediante o cálculo sobre qualquer saldo devedor atualizado monetariamente, conforme exemplos abaixo, nos quais verifica-se que não existiu nenhuma diferença em relação aos valores cobrados pela parte ré, mas eventualmente arredondamento de casas decimais. Vejamos:" & #dbl#,
+									attach("imagemPlanilhaDeEvolucao.png", "center"),
+									print #dbl#,
 									print #parag# & "Por oportuno, esclarece esta parte ré que a taxa efetiva anual, obtida a partir da capitalização da taxa de juros mensal, não é aplicada no contrato, uma vez que possui caráter meramente informativo com a finalidade de atender às regulamentações do BACEN relacionadas ao CET. Não há aplicação de CES (Coeficiente de Equivalência Salarial), pois não há vinculação com equivalência salarial." & #dbl#,
 									print #parag# & "Vale ressaltar que o reajuste do valor financiado e demais encargos não estão vinculados ao salário do mutuário ou vencimento da sua categoria profissional, portanto não cabe revisão de índices para o contrato. Além disso, a apuração de renda ocorre quando da contratação do financiamento para fins de enquadramento da operação na modalidade de crédito e apuração da capacidade de pagamento, não havendo qualquer vínculo do financiamento com o comprometimento de renda/reajustes salariais dos mutuários. Da mesma forma, não existe vínculo com a composição da estrutura familiar." & #dbl#,
 									print #parag# & "Em tempo, a medida provisória 2.223 de 09 set 2001, transformada na Lei 10.931 de 02 agosto de 2004 (art. 48) proibiu a inclusão de novos contratos vinculados a equivalência salarial ou ao comprometimento de renda." & #dbl#,
 									print #parag# & "Ora Excelência, o contrato habitacional em questão encontra-se inadimplente. Em caso de inadimplência, aplica-se as cominações previstas em contrato, a saber:  " & #dbl#,
-									print #parag# & "- Juros Remuneratórios sobre as obrigações em Atraso: sobre o valor da obrigação em atraso, incidirão juros remuneratórios pela mesma taxa vigente para o contrato, desde a data do vencimento até a data do efetivo pagamento pelo critério pro rata die. -  Juros de Mora sobre obrigações em Atraso: sobre o valor das obrigações em atraso, incidirão os juros moratórios à razão de trinta e três milésimos por cento por dia de atraso. -  Multa moratória sobre obrigações em Atraso: sobre o valor das obrigações em atraso, incidirá de multa moratória de dois por cento, nos termos da legislação em vigor." & #dbl#,
-									print #parag# & "Consta na planilha de evolução que ocorreu incorporação ao saldo devedor em 18/12/2017 no valor de R$ 8.062,39." & #dbl#,
+									citation("- Juros Remuneratórios sobre as obrigações em Atraso: sobre o valor da obrigação em atraso, incidirão juros remuneratórios pela mesma taxa vigente para o contrato, desde a data do vencimento até a data do efetivo pagamento pelo critério pro rata die. -  Juros de Mora sobre obrigações em Atraso: sobre o valor das obrigações em atraso, incidirão os juros moratórios à razão de trinta e três milésimos por cento por dia de atraso. -  Multa moratória sobre obrigações em Atraso: sobre o valor das obrigações em atraso, incidirá de multa moratória de dois por cento, nos termos da legislação em vigor."),
+									print #dbl#,
+									print #parag# & "Consta na planilha de evolução que ocorreu incorporação ao saldo devedor em " & <strInfoContratuais.incorporacaoDeSaldo> & " no valor de R$ " & <strInfoContratuais.saldoDevedor> & "." & #dbl#,
 									print #parag# & "Quanto aos SEGUROS, a SUSEP – Superintendência de Seguros Privados, através da Circular nº 76, de 23/11/77, que versa sobre a Apólice Compreensiva de Seguros, estabeleceu que a escolha da seguradora fosse feita pelo estipulante do financiamento habitacional, no caso a CAIXA, e não pelo segurado. Porém, em cumprimento ao disposto na Resolução SUSEP nº 205/09 e Resolução BACEN 3.811/09, a partir do dia 18/02/2010 passou a ser oferecida aos mutuários/arrendatários mais de uma opção de apólice de sociedades seguradoras diferentes com os respectivos custos efetivos do seguro habitacional:" & #dbl#,
-									print #parag# & "“O Seguro Habitacional tem por objetivo a quitação de dívida do segurado correspondente ao saldo devedor vincendo na data do sinistro relativa a financiamento para aquisição ou construção de imóvel, em geral, e/ou a reposição do imóvel, na ocorrência de sinistro coberto, nos termos desta Resolução." & #dbl#,
-									print #parag# & "Parágrafo único. O seguro de que trata o caput poderá, na forma da legislação vigente, ser operado por sociedades seguradoras autorizadas a operar seguros de pessoas ou por sociedades seguradoras autorizadas a operar seguros de danos, observadas as disposições desta Resolução e demais normativos do CNSP e da SUSEP.”" & #dbl#,
+									citation("“O Seguro Habitacional tem por objetivo a quitação de dívida do segurado correspondente ao saldo devedor vincendo na data do sinistro relativa a financiamento para aquisição ou construção de imóvel, em geral, e/ou a reposição do imóvel, na ocorrência de sinistro coberto, nos termos desta Resolução." & "\b" 
+									& "Parágrafo único. O seguro de que trata o caput poderá, na forma da legislação vigente, ser operado por sociedades seguradoras autorizadas a operar seguros de pessoas ou por sociedades seguradoras autorizadas a operar seguros de danos, observadas as disposições desta Resolução e demais normativos do CNSP e da SUSEP.”"),
+									print #dbl#,
 									print #parag# & "Logo, quanto à contratação do seguro, o cliente poderá optar por proposta de apólice individual diferente daquelas oferecidas pela CAIXA, desde que atenda no mínimo as condições básicas definidas pela SUSEP e observadas às exigências de cada operação." & #dbl#,
 									print #parag# & "No presente contrato, as coberturas envolvidas são:" & #dbl#,
-									print #parag# & "a)    MIP – MORTE E INVALIDEZ PERMANENTE: O valor do MIP é obtido mediante a aplicação das taxas de seguros sobre o valor financiado na contratação considerando a faixa etária dos proponentes e calculado proporcionalmente em função da                  pactuação de renda dos participantes." & #dbl#,
-									print #parag# & "b)   DFI – DANOS FÍSICOS NO IMÓVEL: O valor do DFI é obtido mediante a aplicação de percentual sobre o valor da avaliação total da garantia efetuada pela CAIXA." & #dbl#,
-									print #parag# & "Para as operações contratadas com a Apólice CAIXA Seguros LAR+ o DFI contempla, ainda, as coberturas acessórias de natureza material para danos elétricos, pagamento de aluguéis, danos ao conteúdo, roubo/furto de conteúdo e assistência 24h. O cálculo do seguro corresponde a praticado no mercado, considerando a amplitude das coberturas securitárias." & #dbl#,
-									print #parag# & "Diferentemente do Seguro Residencial, o Seguro Habitacional possui a característica de quitação do financiamento habitacional junto ao agente financeiro, em caso de morte ou invalidez total e permanente do cliente/segurado. Salienta-se que o seguro é recalculado com a mudança de faixa etária, bem como na hipótese de sinistro MIP se o contrato tiver mais de um mutuário/participante ocorrerá amortização proporcional ao percentual de pactuação de renda do cliente/participante sinistrado." & #dbl#,
+									if(<strInfoContratuais.coberturas> == "Morte e invalidez permanente") {
+										citation("a)    MIP – MORTE E INVALIDEZ PERMANENTE: O valor do MIP é obtido mediante a aplicação das taxas de seguros sobre o valor financiado na contratação considerando a faixa etária dos proponentes e calculado proporcionalmente em função da pactuação de renda dos participantes."),
+										print #dbl#
+									},
+									if(<strInfoContratuais.coberturas> == "Danos físicos no imóvel") {
+										citation("b)   DFI – DANOS FÍSICOS NO IMÓVEL: O valor do DFI é obtido mediante a aplicação de percentual sobre o valor da avaliação total da garantia efetuada pela CAIXA."),
+										print #dbl#
+									},
+									if(<strInfoContratuais.coberturas> == "Danos físicos no imóvel") {
+										print #parag# & "Para as operações contratadas com a Apólice CAIXA Seguros LAR+ o DFI contempla, ainda, as coberturas acessórias de natureza material para danos elétricos, pagamento de aluguéis, danos ao conteúdo, roubo/furto de conteúdo e assistência 24h. O cálculo do seguro corresponde a praticado no mercado, considerando a amplitude das coberturas securitárias." & #dbl#
+									},
+									if(<strInfoContratuais.coberturas> == "Morte e invalidez permanente") {
+										print #parag# & "Diferentemente do Seguro Residencial, o Seguro Habitacional possui a característica de quitação do financiamento habitacional junto ao agente financeiro, em caso de morte ou invalidez total e permanente do cliente/segurado. Salienta-se que o seguro é recalculado com a mudança de faixa etária, bem como na hipótese de sinistro MIP se o contrato tiver mais de um mutuário/participante ocorrerá amortização proporcional ao percentual de pactuação de renda do cliente/participante sinistrado." & #dbl#
+									},
 									print #parag# & "Em relação a TAXA OPERACIONAL MENSAL (TOM), que no instrumento contratual também pode possuir o nome de Taxa de Administração, informa-se que a mesma está em conformidade com a Resolução 3.932 de 16 de dezembro 2010 do Conselho Monetário Nacional, que altera e consolida as normas sobre direcionamento dos recursos captados em depósitos de poupança pelas entidades integrantes do Sistema Brasileiro de Poupança e Empréstimo (SBPE), conforme texto colacionado abaixo:" & #dbl#,
-									print #parag# & "“Art. 14. Além das demais condições estabelecidas na legislação em vigor, as operações no âmbito do SFH devem observar o seguinte: (...) II - o valor de tarifa mensal eventualmente cobrada do mutuário de contrato de financiamento imobiliário com o objetivo de ressarcir custos de administração desse contrato, limitado a R$25,00 (vinte e cinco reais) por contrato;”" & #dbl#,
+									citation("“Art. 14. Além das demais condições estabelecidas na legislação em vigor, as operações no âmbito do SFH devem observar o seguinte: (...) II - o valor de tarifa mensal eventualmente cobrada do mutuário de contrato de financiamento imobiliário com o objetivo de ressarcir custos de administração desse contrato, limitado a R$25,00 (vinte e cinco reais) por contrato;”"),
+									print #dbl#,
 									print #parag# & "Em relação a CAPITALIZAÇÃO DOS JUROS E SISTEMAS DE AMORTIZAÇÃO, esclarece que não há capitalização de juros na evolução da dívida pela mera utilização de um sistema de amortização, seja ele Tabela Price, SAC ou SACRE. A esse respeito, logo de plano, cabe lembrar que é muito comum leigos em matemática confundirem sistema de capitalização com sistema de amortização." & #dbl#,
 									print #parag# & "Diversos acadêmicos e peritos respeitados demonstram que não existe capitalização de juros vedada pela lei na estrutura matemática da Tabela Price, e que o entendimento também se aplica aos demais sistemas de amortização. Vejamos resumidamente algumas posições a respeito:" & #dbl#,
-									print #parag# & bold("ABELARDO DE LIMA PUCCINI") & " (Matemática Financeira Objetiva e Aplicada – Ed. Saraiva, 6ª ed. 1999, pg. 14) ensina que a capitalização de juros ocorre quando: “os juros de cada período são somados ao capital para o cálculo de novos juros no período seguinte.“ " & #dbl#,
-									print #parag# & bold("JOSÉ DUTRA VIEIRA SOBRINHO") & " (Artigo “A Capitalização e Anatocismo”, Revista do SFH, publicação da ABECIP, 2003, Ano 7, nº 16, p. e também no site www.sindecon-esp.org.br), especialista em Matemática Financeira, esclarece o significado do anatocismo vedado pela lei: 3 – O que é anatocismo. De acordo com ampla pesquisa realizada pelo autor, a expressão anatocismo nada tem a ver com o critério de formação dos juros a serem pagos (ou recebidos) numa determinada data. Anatocismo consiste na cobrança de juros sobre juros vencidos e não pagos, exatamente como conceituado no Novo Dicionário Brasileiro." & #dbl#,
-									print #parag# & "Como a legislação brasileira foi inspirada nas leis dos países europeus caso da França, Portugal, Alemanha, Itália, Espanha e Holanda, é importante transcrever o conceito de anatocismo contido no Código Civil português, que endossa plenamente o entendimento exposto neste texto:" & #dbl#,
-									print #parag# & "“Art. 560 - Para que os juros vencidos produzam juros é necessária convenção posterior ao vencimento; pode haver também juros de juros, a partir da notificação judicial feita ao devedor para capitalizar os juros vencidos ou proceder ao seu pagamento sob pena de capitalização. Só podem ser capitalizados os juros correspondentes ao período mínimo de um ano.”" & #dbl#,
-									print #parag# & "No Código Civil italiano encontramos entendimento semelhante: “Art. 1282 – Na falta de uso contrário, os juros vencidos só podem produzir juros do dia do pedido judicial, ou por efeito de convenção posterior ao seu vencimento, e sempre que trate de juros devidos pelo menos por 6 meses.”" & #dbl#,
-									print #parag# & "E no Código Civil francês, conhecido também por Código de Napoleão, considerado pela maioria dos grandes juristas como o pai de todos os códigos, o entendimento não é diferente:" & #dbl#,
-									print #parag# & "“ Art. 1154 - Os juros vencidos dos capitais podem produzir juros, quer por um pedido judicial, quer por uma convenção especial, contando que, seja no pedido, seja na convenção, se trate de juros devidos, pelo menos, por um ano inteiro.”" & #dbl#,
-									print #parag# & "Com base nessas evidências pode-se deduzir que o Art. 253 do Código Comercial Brasileiro, editado em 1850, copiado literalmente no Art. 4º do Decreto 22626 de 7 de abril de 1933, foi mal copiado ou mal traduzido. Esse artigo tem a seguinte redação: “É proibido contar juros dos juros; esta proibição não compreende a acumulação de juros vencidos aos saldos liquidados em conta corrente de ano a ano.” Observa-se claramente que a primeira frase deveria ser “É proibido contar juros dos juros vencidos”, ou ainda, “É proibido calcular juros sobre juros vencidos”." & #dbl#,
-									print #parag# & "III – Existência do anatocismo e a prática dos juros compostos" & #dbl#,
-									print #parag# & "Entendido o anatocismo tal como foi caracterizado, ele somente existiria se após o vencimento de uma operação o credor cobrasse juros sobre os juros vencidos e não pagos.”" & #dbl#,
-									print #parag# & "E conclui:" & #dbl#,
-									print #parag# & "“É fácil verificar que, ao se efetivar os pagamentos de cada uma das prestações nos respectivos vencimentos, os juros devidos são integralmente pagos, e portanto, nada restará de juros para o mês seguinte. Dessa forma, comprova-se que não ocorre o anatocismo.” (destacado)." & #dbl#,
-									print #parag# & "A inexistência de anatocismo também é defendida pelo economista " & bold("DERALDO DIAS MARANGONI") & " (Artigo intitulado “A Tabela Price e a Capitalização de Juros”, disponível em: www.sindecon-esp.org.br): “Com o perdão pela obviedade, é IMPORTANTE DESTACAR: CAPITALIZAÇÃO DE JUROS SIGNIFICA SOMAR OS JUROS AO CAPITAL. E ESTE PROCEDIMENTO JAMAIS É REALIZADO NA APLICAÇÃO NORMAL DA TABELA PRICE. Isto acontece sim em sistemas de financiamento onde: O CÁLCULO DOS JUROS É REALIZADO EM UM PERÍODO E O SEU PAGAMENTO É POSTERGADO, o que certamente, não é o caso da Tabela Price.” (destacado)." & #dbl#,
-									print #parag# & bold("OZIEL CHAVES") & " (Artigo intitulado “Há capitalização de juros na Tabela Price?”, disponível em: www.sindecon-esp.org.br), economista, perito judicial e auditor de contratos, entende igualmente que: “Anatocismo consiste em: “Capitalização de juros, vencendo novos juros. É a contagem de juros sobre juros já produzidos pelo capital empregado.“ (cfr. Novo Dicionário Jurídico Brasileiro, do jurista José Náufel). É a clássica definição de juros compostos. É a prática de cálculo de juros sobre juros e não de taxas sobre taxas. Recorro, novamente, a Puccini (Abelardo de Lima..), um dos melhores e mais conceituados matemáticos do Brasil, professor da FGV-Rio. Ensina ele, no livro já citado, à pg. 83, com grifos meus: “No regime de juros compostos, os juros de cada período, quando não são pagos no final do período, devem ser somados ao capital.“ É evidente a ressalva do ilustre professor, dispensando demonstração. Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar. Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias." & #dbl#,
+									citation(bold("ABELARDO DE LIMA PUCCINI") & " (Matemática Financeira Objetiva e Aplicada – Ed. Saraiva, 6ª ed. 1999, pg. 14) ensina que a capitalização de juros ocorre quando: “os juros de cada período são somados ao capital para o cálculo de novos juros no período seguinte.“"),
+									print #dbl#,
+									citation(bold("JOSÉ DUTRA VIEIRA SOBRINHO") & " (Artigo “A Capitalização e Anatocismo”, Revista do SFH, publicação da ABECIP, 2003, Ano 7, nº 16, p. e também no site www.sindecon-esp.org.br), especialista em Matemática Financeira, esclarece o significado do anatocismo vedado pela lei: 3 – O que é anatocismo. De acordo com ampla pesquisa realizada pelo autor, a expressão anatocismo nada tem a ver com o critério de formação dos juros a serem pagos (ou recebidos) numa determinada data. Anatocismo consiste na cobrança de juros sobre juros vencidos e não pagos, exatamente como conceituado no Novo Dicionário Brasileiro." & "\b"
+										& "Como a legislação brasileira foi inspirada nas leis dos países europeus caso da França, Portugal, Alemanha, Itália, Espanha e Holanda, é importante transcrever o conceito de anatocismo contido no Código Civil português, que endossa plenamente o entendimento exposto neste texto:" & "\b"
+									 	& "“Art. 560 - Para que os juros vencidos produzam juros é necessária convenção posterior ao vencimento; pode haver também juros de juros, a partir da notificação judicial feita ao devedor para capitalizar os juros vencidos ou proceder ao seu pagamento sob pena de capitalização. Só podem ser capitalizados os juros correspondentes ao período mínimo de um ano.”" & "\b"
+									 	& "No Código Civil italiano encontramos entendimento semelhante: “Art. 1282 – Na falta de uso contrário, os juros vencidos só podem produzir juros do dia do pedido judicial, ou por efeito de convenção posterior ao seu vencimento, e sempre que trate de juros devidos pelo menos por 6 meses.”" & "\b"
+										& "E no Código Civil francês, conhecido também por Código de Napoleão, considerado pela maioria dos grandes juristas como o pai de todos os códigos, o entendimento não é diferente:" & "\b"
+									 	& "“ Art. 1154 - Os juros vencidos dos capitais podem produzir juros, quer por um pedido judicial, quer por uma convenção especial, contando que, seja no pedido, seja na convenção, se trate de juros devidos, pelo menos, por um ano inteiro.”" & "\b"
+									 	& "Com base nessas evidências pode-se deduzir que o Art. 253 do Código Comercial Brasileiro, editado em 1850, copiado literalmente no Art. 4º do Decreto 22626 de 7 de abril de 1933, foi mal copiado ou mal traduzido. Esse artigo tem a seguinte redação: “É proibido contar juros dos juros; esta proibição não compreende a acumulação de juros vencidos aos saldos liquidados em conta corrente de ano a ano.” Observa-se claramente que a primeira frase deveria ser “É proibido contar juros dos juros vencidos”, ou ainda, “É proibido calcular juros sobre juros vencidos”." & "\b"
+									 	& "III – Existência do anatocismo e a prática dos juros compostos" & "\b"
+									 	& "Entendido o anatocismo tal como foi caracterizado, ele somente existiria se após o vencimento de uma operação o credor cobrasse juros sobre os juros vencidos e não pagos.”" & "\b"
+									 	& "E conclui:" & "\b"
+									 	& "“É fácil verificar que, ao se efetivar os pagamentos de cada uma das prestações nos respectivos vencimentos, os juros devidos são integralmente pagos, e portanto, nada restará de juros para o mês seguinte. Dessa forma, comprova-se que não ocorre o anatocismo.” (destacado)."),
+									print #dbl#,
+									citation("A inexistência de anatocismo também é defendida pelo economista " & bold("DERALDO DIAS MARANGONI") & " (Artigo intitulado “A Tabela Price e a Capitalização de Juros”, disponível em: www.sindecon-esp.org.br): “Com o perdão pela obviedade, é IMPORTANTE DESTACAR: CAPITALIZAÇÃO DE JUROS SIGNIFICA SOMAR OS JUROS AO CAPITAL. E ESTE PROCEDIMENTO JAMAIS É REALIZADO NA APLICAÇÃO NORMAL DA TABELA PRICE. Isto acontece sim em sistemas de financiamento onde: O CÁLCULO DOS JUROS É REALIZADO EM UM PERÍODO E O SEU PAGAMENTO É POSTERGADO, o que certamente, não é o caso da Tabela Price.” (destacado)."),
+									print #dbl#,
+									citation(bold("OZIEL CHAVES") & " (Artigo intitulado “Há capitalização de juros na Tabela Price?”, disponível em: www.sindecon-esp.org.br), economista, perito judicial e auditor de contratos, entende igualmente que: “Anatocismo consiste em: “Capitalização de juros, vencendo novos juros. É a contagem de juros sobre juros já produzidos pelo capital empregado.“ (cfr. Novo Dicionário Jurídico Brasileiro, do jurista José Náufel). É a clássica definição de juros compostos. É a prática de cálculo de juros sobre juros e não de taxas sobre taxas. Recorro, novamente, a Puccini (Abelardo de Lima..), um dos melhores e mais conceituados matemáticos do Brasil, professor da FGV-Rio. Ensina ele, no livro já citado, à pg. 83, com grifos meus: “No regime de juros compostos, os juros de cada período, quando não são pagos no final do período, devem ser somados ao capital.“ É evidente a ressalva do ilustre professor, dispensando demonstração. Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar. Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias."),
+									print #dbl#,
 									print #parag# & "Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar. Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias." & #dbl#,
 									print #parag# & "Os Sistemas de Amortização são mecanismos matematicamente equilibrados e visam definir a forma de extinção de um empréstimo através de pagamentos sucessivos e periódicos, que são realizados através de um planejamento financeiro. Através destes Sistemas de Amortização são determinados os valores mensais das prestações de amortização e juros, em função do tempo contratado (n) e da taxa anual de juros (i), ou seja, o comportamento das prestações ao longo do tempo. O valor de cada prestação é formado por duas parcelas: Uma parcela de amortização, que é a devolução do principal ou parte dele, e outra parcela de juros, que representam o custo/remuneração do empréstimo/capital empregado: " & bold("PRESTAÇÃO = AMORTIZAÇÃO + JUROS.") & #dbl#,
 									print #parag# & "O valor dos juros de cada prestação é apurado mensal e sucessivamente, respeitando a fórmula universal de cálculo dos juros SIMPLES que é o resultado da multiplicação do Capital pela taxa de juros, conforme abaixo:" & #dbl#,
-									print #parag# & " " & bold("J = C x i.           ") & #dbl#,
+									print #parag# & " " & bold("J = C x i.") & #dbl#,
 									print #parag# & bold(" Ou seja, JUROS = SALDO DEVEDOR X TAXA DE JUROS.") & #dbl#,
 									print #parag# & "Então, mensalmente, tem-se os juros sobre o saldo devedor devidamente atualizado e uma parcela de amortização." & #dbl#,
 									print #parag# & "Ressalta-se que estes juros nos contratos do SFH são quitados mensalmente. A parcela de amortização como o nome já diz, amortiza o saldo devedor. Tudo em obediência ao previsto no artigo 354 do Código Civil. Vejamos:" & #dbl#,
-									print #parag# & "“Art. 354. Havendo capital e juros, o pagamento imputar-se-á primeiro nos juros vencidos, e depois no capital, salvo estipulação em contrário, ou se o credor passar a quitação por conta do capital.”" & #dbl#,
+									citation("“Art. 354. Havendo capital e juros, o pagamento imputar-se-á primeiro nos juros vencidos, e depois no capital, salvo estipulação em contrário, ou se o credor passar a quitação por conta do capital.”"),
+									print #dbl#,
 									print #parag# & "O Sistema de Amortização Constante - SAC consiste em um sistema de amortização de uma dívida em prestações periódicas, sucessivas e decrescentes em progressão aritmética, em que o valor da prestação é composto por uma parcela de juros uniformemente decrescente e outra de amortização que permanece constante. A parcela de amortização neste sistema é constante e é determinada através da divisão do capital (valor emprestado) pela quantidade de prestações." & #dbl#,
 									print #parag# & "Esta prestação de amortização é recalculada conforme abaixo, considerando o saldo devedor (SD) no dia do aniversário do contrato:" & #dbl#,
 									print #parag# & bold("AM = SD/N") & #dbl#,
@@ -553,7 +588,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							},
 							branch[BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo] {
 								operations {
-									print #parag# & "Alega a parte autora em sua inicial que o contrato de financiamento de veículo que entabulou com a parte ré está lotado de cláusulas abusivas e requer deste Douto Juízo a revisão do mesmo. Sendo assim, essa parte ré traz aos autos a realidade dos fatos e descreve abaixo como foi entabulado o contrato com a parte autora e suas cláusulas legais." & #dbl#,
+									print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras ", "Alega a parte autora ") & " em sua inicial que o contrato de financiamento de veículo que entabulou com a parte ré está lotado de cláusulas abusivas e requer deste Douto Juízo a revisão do mesmo. Sendo assim, essa parte ré traz aos autos a realidade dos fatos e descreve abaixo como foi entabulado o contrato com " & |vectAutor|.grammar("a parte autora") & " e suas cláusulas legais." & #dbl#,
 									print #parag# & "Informa-se que o contrato se refere a operação 7044 - Financiamento de Veículos PF. São objetos desse financiamento veículo nacional ou importado, novo ou usado, registrado na categoria particular, com capacidade para até oito passageiros, excluindo o condutor. " & #dbl#,
 									print #parag# & "Sobre o valor emprestado incidem juros remuneratórios com taxa prefixada incidente sobre o saldo devedor devido a partir da data da contratação até a integral liquidação do valor contratado." & #dbl#,
 									print #parag# & "O contrato é garantido por " & bold("Alienação Fiduciária de Veículo") & " - Garantia representada pela transferência da propriedade resolúvel de um bem veículo para o credor fiduciante, em que fique o devedor fiduciário na posse direta desse bem, na condição de fiel depositário, até o pagamento total da obrigação, quando opera a resolução. Anexo a esta defesa está a planilha de evolução do contrato " & bold("99259498419") & ". Tal planilha descreve o valor total financiado, a taxas de juros e as parcelas pagas." & #dbl#,
@@ -573,8 +608,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							use BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario,
-							use BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo
+							if(<strModelo.modelo> == "Revisional imobiliária") {
+								use BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario
+							} else {
+								use BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo
+							}
 						}
 					},
 					branch[BRC_ImprocedenciaDosPedidos] {
@@ -643,8 +681,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							use TOP_ImprocedenciaDosPedidos_Imobliario,
-							use TOP_ImprocedenciaDosPedidos_Veiculo
+							if(<strModelo.modelo> == "Revisional imobiliária") {
+								use TOP_ImprocedenciaDosPedidos_Imobliario
+							} else {
+								use TOP_ImprocedenciaDosPedidos_Veiculo
+							}		
 						}
 					},
 					topic[TOP_TutelaDeUrgencia] {
@@ -681,8 +722,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							use BRC_TutelaDeUrgencia_Imobliario,
-							use BRC_TutelaDeUrgencia_Veiculo
+							if(<strModelo.modelo> == "Revisional imobiliária") {
+								use BRC_TutelaDeUrgencia_Imobliario
+							} else {
+								use BRC_TutelaDeUrgencia_Veiculo
+							}
 						}
 					},
 					topic[TOP_OnusDaProva] {
@@ -760,7 +804,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							
+							if(<strModelo.modelo> == "Revisional imobiliária") {
+								use TOP_DepositoEmConsignacao_Imobliario
+							} else {
+								use TOP_DepositoEmConsignacao_Veiculo
+							}
 						}
 					}
 				}
@@ -768,7 +816,9 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					use TOP_ClausulasContratuais_RealidadeDosFatos,
 					use BRC_ImprocedenciaDosPedidos,
 					use TOP_TutelaDeUrgencia,
-					use TOP_OnusDaProva,
+					if(<strModelo.modelo> == "Revisional imobiliária") {
+						use TOP_OnusDaProva
+					},
 					use BRC_DepositoEmConsignacao
 				}
 			},
@@ -889,7 +939,10 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 				index = true
 				operations {
 					<strMerito>.ask(),
-					<strInfoContratuais>.ask()
+					<strInfoContratuais>.ask(),
+					if(<strModelo.modelo> == "Revisional imobiliária") {
+						upload("Upload da planilha de evolução", "imagemPlanilhaDeEvolucao.png", "Faça o upload da planilha de evolução", "+")
+					}
 				}	
 			},
 			branch[TOC_Encerramento] {
