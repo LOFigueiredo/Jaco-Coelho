@@ -20,6 +20,7 @@ title-font-size:12;
 title-mask:1.1.1.1.1.;
 title-tab:false;
 title-max-level:3;
+title-align: center;
 
 head-title-font-size: 0;
 
