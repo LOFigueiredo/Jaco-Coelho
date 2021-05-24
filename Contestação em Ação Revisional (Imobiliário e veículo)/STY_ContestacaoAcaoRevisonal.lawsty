@@ -20,7 +20,7 @@ title-font-size:12;
 title-mask:1.1.1.1.1.;
 title-tab:false;
 title-max-level:3;
-title-align: center;
+title-align:center;
 
 head-title-font-size: 0;
 
@@ -36,15 +36,15 @@ footnote-spacing:0;
 parag-mask:1.1.1.1.1.;
 parag-size:13;
 parag-recursive:true;
-parag-number-of-spaces:;
+parag-number-of-spaces:0;
 
 list-enum:true;
-list-font-size:10;
+list-font-size:12;
 list-font-bold:true;
 list-recursive:true;
 list-spacing:0;
-list-left-delimiter:(;
-list-right-delimiter:);
+list-left-delimiter:;
+list-right-delimiter:.;
 
 table-field-color: #EFEFEF;
 table-null-values:false;
