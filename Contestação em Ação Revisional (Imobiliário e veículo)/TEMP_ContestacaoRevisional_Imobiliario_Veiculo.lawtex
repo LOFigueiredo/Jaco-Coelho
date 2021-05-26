@@ -543,6 +543,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 					},
+					print #bl#,
 					<contTopic> = <contTopic> + 1
 				}
 			},
@@ -571,6 +572,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					} else {
 						use BRC_BreveHistorico_Veiculo
 					},
+					print #bl#,
 					<contTopic> = <contTopic> + 1			
 				}
 			},
@@ -672,7 +674,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & bold("J = SD x i/1200") & #bl#,
 									print #parag# & "Sendo, " & #bl#,
 									print #parag# & "J= valor da parcela de juros; " & #bl#,
-									print #parag# & "SD = valor do saldo devedor atualizado na data do aniversário do contrato;" & #bl#,
+									print #parag# & "SD = valor do saldo devedor atualizado na data do aniversário do",
+									print #parag# & "contrato;" & #bl#,
 									print #parag# & " i = taxa de juros nominal ao ano, definida para o contrato." & #bl#,
 									print #parag# & "O valor do encargo mensal é determinado através da somatória das parcelas de amortização e de juros. Neste sistema SAC, a prestação não é fixa, muda de período a período. Como o empréstimo é amortizado de forma constante, o valor dos juros diminui e, consequentemente, a prestação também. Os juros, por incidirem sobre o saldo devedor, cujo montante diminui após o pagamento de cada amortização, assumem valores decrescentes nos períodos. Em consequência do comportamento da amortização e dos juros, as prestações no SAC são decrescentes em progressão aritmética." & #bl#,
 									print #parag# & "Em consulta a planilha de evolução do contrato, " & bold("verifica-se que o mútuo evolui a termo inexistindo anatocismo, sendo a inadimplência do contrato motivado por fatores outros que não o aumento das prestações mensais.") & #bl#,
@@ -953,8 +956,41 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			},
 			branch[BRC_Pedidos] {
 				declarations {
-					-<cont> : Integer {default = 1},
 					branch[BRC_Pedidos_Imobliario] {
+						declarations {
+							-<cont> : Integer {default = 1},
+							branch[BRC_Docs_Pedidos_Imobliario] {
+								declarations {
+									-<contDoc> : Integer {default = 1}
+								}
+								operations {
+									if("Procuração" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Procuração;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Substabelecimento" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Substabelecimento;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Contrato" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Contrato;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Ficha de cadastro da parte autora e protocolo de entrega da planilha" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Ficha de cadastro da parte autora e protocolo de entrega da planilha;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Planilha de evolução das parcelas" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução das parcelas;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Planilha de evolução do débito, resumo do débito e atraso no pagamento" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução do débito, resumo do débito e atraso no pagamento;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									}
+								}
+							}
+						}
 						operations {
 							if(<strPreliminares.alegaJG>) {
 								print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de impugnação da assistência judiciária gratuita para " & |vectAutor|.grammar("a parte autora") & ", uma vez que não foi comprovada sua hipossuficiência financeira;",
@@ -978,12 +1014,38 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							<cont> = <cont> + 1,
 							print #bl#,
 
-							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:",
-							print <strDocumentos.documentos>,
+							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
+							use BRC_Docs_Pedidos_Imobliario,
 							<cont> = <cont> + 1
 						}
 					},
 					branch[BRC_Pedidos_Veiculo] {
+						declarations {
+							-<cont> : Integer {default = 1},
+							branch[BRC_Docs_Pedidos_Veiculo] {
+								declarations {
+									-<contDoc> : Integer {default = 1}
+								}
+								operations {
+									if("Procuração" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Procuração;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Substabelecimento" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Substabelecimento;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Contrato" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Contrato;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									},
+									if("Planilha de evolução do contrato" IN <strDocumentos.documentos>) {
+										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução do contrato;", "10pt"),
+										<contDoc> = <contDoc> + 1
+									}
+								}
+							}
+						}
 						operations {
 							if(<strPreliminares.valoresIncontroversos>) {
 								if(<strPreliminares.ocorreuDeposito> == false) {
@@ -1013,12 +1075,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							<cont> = <cont> + 1,
 							print #bl#,
 
-							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:",
-							print <strDocumentos.documentos>,
+							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
+							use BRC_Docs_Pedidos_Veiculo,
 							<cont> = <cont> + 1,
 							print #bl#
 						}
-					}
+					}	
 				}
 				operations {
 					print align(bold(<contTopic> & " Pedido"), "center") & #bl#,
@@ -1028,8 +1090,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					} else {
 						use BRC_Pedidos_Veiculo
 					},
-					print #bl#,
-					<contTopic> = <contTopic> + 1
+					<contTopic> = <contTopic> + 1,
+					print #bl#
 				}	
 			},
 			branch[BRC_Encerramento] {
