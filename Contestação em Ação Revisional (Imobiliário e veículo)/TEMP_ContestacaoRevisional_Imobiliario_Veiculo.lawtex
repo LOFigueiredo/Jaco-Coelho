@@ -5,8 +5,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 		style = "STY_ContestacaoAcaoRevisonal.lawsty"
 		declarations {
 			//Constantes
-			-#parag# : String {value = "<p class = 'paragrafo'></p>"},
-			-#bl# : String {value = "\b"},
+			-#parag# : String {value = "<p class = 'paragrafo'>"},
+			-#bl# : String {value = "</p>\b\b"},
 			-<contTopic> : Integer {default = 1},
 			//Listas
 			list[ListaAdvogados_JacoCoelho] {
@@ -233,12 +233,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						},
 						+[strEnderecoImovel] : Struct {
 							name = "Endereço do imóvel"
-							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", na cidade de " & [cidade] & ", Estado " & [estado].getByKey("Preposição") & " " & [estado] & ", CEP: " & [codigoPostal]
+							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", " & [cidade] & "-" & [estado].getByKey("Preposição") & " " & [estado] /*& ", CEP: " & [codigoPostal]*/
 							fields {
-								+[codigoPostal] : String where("CEP") {
+								/*+[codigoPostal] : String where("CEP") {
 									name = "CEP"
 									request = "CEP"
-								},
+								},*/
 								+[estado] : List[*Uf] {
 									name = "Unidade da Federação"
 									request = "UF"
@@ -386,10 +386,100 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
  	} 
  	body {
  		declarations {
+ 			branch[BRC_Estilo] {
+				declarations {
+					branch[CSS_Titulo] {
+						operations {
+							print "<style>
+								a, h1, h2, h3, h4 {
+									text-align: justify;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Paragrafo] {
+						operations {
+							print "<style>
+								.paragrafo {
+									text-indent: 30mm;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Citacao] {
+						operations {
+							print "<style>
+								.citation {
+									margin: 0pt 0pt 0pt 40mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Lista] {
+						operations {
+							print "<style>
+								ul, ol, li {
+									margin: 0pt 0pt 0pt 60mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+								.print-content li {
+									margin: 0pt 0pt 0pt 0pt;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Tabela] {
+						operations {
+							print "<style>
+								table.acordao,
+								table.acordao tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.acordao td {
+									border: 1px solid black;
+									text-align: justify;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+
+								table.advsAssinam,
+								table.advsAssinam tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.advsAssinam td {
+									border: none;
+									text-align: center;
+									vertical-align: top;
+									font-size: 10pt;
+									font-weight: bold;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+							</style>"
+						}
+					}
+				}
+				operations {
+					use CSS_Titulo,
+					use CSS_Paragrafo,
+					use CSS_Citacao,
+					use CSS_Lista,
+					use CSS_Tabela
+				}
+			},
  			branch[BRC_Enderecamento] {
 				operations {
 					print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal", "do " & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ") & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center") & #bl#,
-					print #bl#,
 					print #bl#,
 					print #bl#,
 					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
@@ -400,7 +490,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			},
 			branch[BRC_Qualificacao] {
 				operations {
-					print #parag# & bold("Caixa Econômica Federal, ") & "Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " & printIf(<strModelo.modelo> == "Revisional imobiliária", bold("Contestação à AÇÃO REVISIONAL DE CONTRATO" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE ANTECIPAÇÃO DE TUTELA", null)), bold("Contestação à AÇÃO REVISIONAL C/C COM AÇÃO CONSIGNATÓRIA" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE TUTELA DE URGÊNCIA CAUTELAR ANTECEDENTE", null))) & ", movida por " & bold(|vectAutor|.vect2str("%f, %s, %p e %l")) & ", já qualificado na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
+					print #parag# & bold("Caixa Econômica Federal, ") & "Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " & printIf(<strModelo.modelo> == "Revisional imobiliária", bold("Contestação à AÇÃO REVISIONAL DE CONTRATO" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE ANTECIPAÇÃO DE TUTELA", null)), bold("Contestação à AÇÃO REVISIONAL C/C COM AÇÃO CONSIGNATÓRIA" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE TUTELA DE URGÊNCIA CAUTELAR ANTECEDENTE", null))) & ", movida por " & |vectAutor|.vect2str("<b>%f</b>, <b>%s</b>, <b>%p</b> e <b>%l</b>") & ", já " & |vectAutor|.grammar("qualificado") & " na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
 				}
 			},
 			branch[BRC_Preliminares] {
@@ -496,12 +586,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & "O contrato habitacional refere-se ao financiamento nº " & <strInfoContratuais.numeroDoContrato> & ", contratado em " & <strBreveHistorico.dataDaCelebracao> & ", cuja origem dos recursos é SBPE com prazo de amortização de 420 (quatrocentos e vinte) meses, taxa de juros de " & <strInfoContratuais.taxaDeJurosAnual> & "%a.a., e Sistema de Amortização SAC. A presente operação remontou em R$ " & <strInfoContratuais.operacao> & " (" & expandedCurrency(<strInfoContratuais.operacao>) & ") tendo como garantia de alienação fiduciária o imóvel situado à " & <strInfoContratuais.strEnderecoImovel> & ", avaliado à época em R$ " & <strInfoContratuais.avaliacao> & " (" & expandedCurrency(<strInfoContratuais.avaliacao>) & ")." & #bl#,
 									print #parag# & "No ato da contratação, a renda familiar era de R$ " & <strInfoContratuais.rendaFamiliar> & ", na seguinte composição: ",
 									foreach(<contratante> IN |strInfoContratuais.vectResponsabilidade|) where (separator = "%f, %s, %p e %l") {
-										print uppercase(<contratante.responsavel>) & " (" & <contratante.percentual> & ")"
+										print uppercase(<contratante.responsavel>) & " (" & <contratante.percentual> & "%)"
 									},
 									print ". O valor do encargo inicial foi calculado da seguinte forma:" & #bl#,
-									print #parag# & "- Prestação (Amortização + Juros): R$ " & <strInfoContratuais.prestacao> & ";" & "\b",
-									print #parag# & "- Prêmios de Seguro: R$ " & <strInfoContratuais.premio> & ";" & "\b",
-									print #parag# & "- Taxa Operacional Mensal: R$ " & <strInfoContratuais.taxaOperacional> & ";" & "\b",
+									print #parag# & "- Prestação (Amortização + Juros): R$ " & <strInfoContratuais.prestacao> & ";",
+									print #parag# & "- Prêmios de Seguro: R$ " & <strInfoContratuais.premio> & ";",
+									print #parag# & "- Taxa Operacional Mensal: R$ " & <strInfoContratuais.taxaOperacional> & ";",
 									print #parag# & "- Total: R$ " & <strInfoContratuais.total> & "." & #bl#,
 									print #parag# & "O Saldo devedor do financiamento é atualizado no dia correspondente ao do aniversário do contrato, pelo mesmo índice de remuneração básica aplicado aos depósitos das contas de poupança/FGTS, que atualmente é a TR - Taxa Referencial, do dia correspondente ao vencimento dos encargos mensais." & #bl#,
 									print #parag# & bold("A atualização do saldo devedor do contrato está ocorrendo conforme previsto contratualmente") & ", conforme se comprova na planilha de evolução da dívida e contrato anexos a esta defesa. As prestações serão recalculadas anualmente no dia correspondente ao da assinatura do contrato com base no saldo devedor atualizado, mantidos a taxa de juros, sistema de amortização contratados e prazo remanescente. Por ocasião do recálculo das prestações de amortização e juros, os prêmios de seguro são recalculados conforme critérios estabelecidos em Cláusula contratual." & #bl#,
@@ -525,18 +615,18 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #bl#,
 									print #parag# & "Logo, quanto à contratação do seguro, o cliente poderá optar por proposta de apólice individual diferente daquelas oferecidas pela CAIXA, desde que atenda no mínimo as condições básicas definidas pela SUSEP e observadas às exigências de cada operação." & #bl#,
 									print #parag# & "No presente contrato, as coberturas envolvidas são:" & #bl#,
-									if(<strInfoContratuais.coberturas> == "Morte e invalidez permanente") {
+									if("Morte e invalidez permanente" IN <strInfoContratuais.coberturas>) {
 										citation("a)    MIP – MORTE E INVALIDEZ PERMANENTE: O valor do MIP é obtido mediante a aplicação das taxas de seguros sobre o valor financiado na contratação considerando a faixa etária dos proponentes e calculado proporcionalmente em função da pactuação de renda dos participantes."),
-										print #bl#
+										print "\b"
 									},
-									if(<strInfoContratuais.coberturas> == "Danos físicos no imóvel") {
+									if("Danos físicos no imóvel" IN <strInfoContratuais.coberturas>) {
 										citation("b)   DFI – DANOS FÍSICOS NO IMÓVEL: O valor do DFI é obtido mediante a aplicação de percentual sobre o valor da avaliação total da garantia efetuada pela CAIXA."),
-										print #bl#
+										print "\b"
 									},
-									if(<strInfoContratuais.coberturas> == "Danos físicos no imóvel") {
+									if("Danos físicos no imóvel" IN <strInfoContratuais.coberturas>) {
 										print #parag# & "Para as operações contratadas com a Apólice CAIXA Seguros LAR+ o DFI contempla, ainda, as coberturas acessórias de natureza material para danos elétricos, pagamento de aluguéis, danos ao conteúdo, roubo/furto de conteúdo e assistência 24h. O cálculo do seguro corresponde a praticado no mercado, considerando a amplitude das coberturas securitárias." & #bl#
 									},
-									if(<strInfoContratuais.coberturas> == "Morte e invalidez permanente") {
+									if("Morte e invalidez permanente" IN <strInfoContratuais.coberturas>) {
 										print #parag# & "Diferentemente do Seguro Residencial, o Seguro Habitacional possui a característica de quitação do financiamento habitacional junto ao agente financeiro, em caso de morte ou invalidez total e permanente do cliente/segurado. Salienta-se que o seguro é recalculado com a mudança de faixa etária, bem como na hipótese de sinistro MIP se o contrato tiver mais de um mutuário/participante ocorrerá amortização proporcional ao percentual de pactuação de renda do cliente/participante sinistrado." & #bl#
 									},
 									print #parag# & "Em relação a TAXA OPERACIONAL MENSAL (TOM), que no instrumento contratual também pode possuir o nome de Taxa de Administração, informa-se que a mesma está em conformidade com a Resolução 3.932 de 16 de dezembro 2010 do Conselho Monetário Nacional, que altera e consolida as normas sobre direcionamento dos recursos captados em depósitos de poupança pelas entidades integrantes do Sistema Brasileiro de Poupança e Empréstimo (SBPE), conforme texto colacionado abaixo:" & #bl#,
@@ -565,7 +655,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & "Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar. Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias." & #bl#,
 									print #parag# & "Os Sistemas de Amortização são mecanismos matematicamente equilibrados e visam definir a forma de extinção de um empréstimo através de pagamentos sucessivos e periódicos, que são realizados através de um planejamento financeiro. Através destes Sistemas de Amortização são determinados os valores mensais das prestações de amortização e juros, em função do tempo contratado (n) e da taxa anual de juros (i), ou seja, o comportamento das prestações ao longo do tempo. O valor de cada prestação é formado por duas parcelas: Uma parcela de amortização, que é a devolução do principal ou parte dele, e outra parcela de juros, que representam o custo/remuneração do empréstimo/capital empregado: " & bold("PRESTAÇÃO = AMORTIZAÇÃO + JUROS.") & #bl#,
 									print #parag# & "O valor dos juros de cada prestação é apurado mensal e sucessivamente, respeitando a fórmula universal de cálculo dos juros SIMPLES que é o resultado da multiplicação do Capital pela taxa de juros, conforme abaixo:" & #bl#,
-									print #parag# & " " & bold("J = C x i.") & #bl#,
+									print #parag# & " " & bold("J = C x i."),
 									print #parag# & bold(" Ou seja, JUROS = SALDO DEVEDOR X TAXA DE JUROS.") & #bl#,
 									print #parag# & "Então, mensalmente, tem-se os juros sobre o saldo devedor devidamente atualizado e uma parcela de amortização." & #bl#,
 									print #parag# & "Ressalta-se que estes juros nos contratos do SFH são quitados mensalmente. A parcela de amortização como o nome já diz, amortiza o saldo devedor. Tudo em obediência ao previsto no artigo 354 do Código Civil. Vejamos:" & #bl#,
@@ -575,8 +665,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & "Esta prestação de amortização é recalculada conforme abaixo, considerando o saldo devedor (SD) no dia do aniversário do contrato:" & #bl#,
 									print #parag# & bold("AM = SD/N") & #bl#,
 									print #parag# & "Sendo," & #bl#,
-									print #parag# & "AM = valor referente à parcela mensal de amortização; " & #bl#,
-									print #parag# & "SD = saldo devedor na data do recálculo; " & #bl#,
+									print #parag# & "AM = valor referente à parcela mensal de amortização;",
+									print #parag# & "SD = saldo devedor na data do recálculo; ",
 									print #parag# & "N = prazo remanescente." & #bl#,
 									print #parag# & "O cálculo da parcela de juros ocorre da seguinte forma:" & #bl#,
 									print #parag# & bold("J = SD x i/1200") & #bl#,
@@ -617,12 +707,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							print "\b",
 							if(<strModelo.modelo> == "Revisional imobiliária") {
 								use BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario
 							} else {
 								use BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo
-							}
+							},
+							print #bl#
 						}
 					},
 					branch[BRC_ImprocedenciaDosPedidos] {
@@ -701,12 +791,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							}
 						}
 						operations {
-							
 							if(<strModelo.modelo> == "Revisional imobiliária") {
 								use BRC_ImprocedenciaDosPedidos_Imobliario
 							} else {
 								use BRC_ImprocedenciaDosPedidos_Veiculo
-							}
+							},
+							print #bl#
 						}
 					},
 					branch[BRC_InexistenciaDeFalha] {
@@ -717,6 +807,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							print #parag# & "Poderia ter optado por outro banco cujas cláusulas estivessem dentro de suas possibilidades, ou cujo agente financeiro fosse do seu agrado." & #bl#,
 							print #parag# & "Assim, o contrato foi firmado tendo como elemento decisivo o consentimento livre " & |vectAutor|.grammar("da parte autora") & ". Nesse diapasão, não há como também se afastar o princípio pacta sunt servanda, cuja aplicação faz-se necessária em qualquer contrato perfeito e acabado. Assim, é de se concluir que não há ilegalidade ou abusividade no contrato firmado com a Embargada, destacando-se, ainda, que ela teve ciência previamente de todos os termos do contrato, bem como teve a liberdade de escolher se iria contratar ou não, com que instituição contratar, sob que forma e quais os termos dos contratos." & #bl#,
 							print #parag# & "O caso sub judice trata-se de um contrato livremente acordado entre partes capazes, com objeto lícito, forma prescrita ou não defesa em lei, sendo, portanto um ato jurídico perfeito, o qual é protegido pela Magna Carta em seu art. 5º, inc. XXXVI, defeso de modificações quer por vontade unilateral de qualquer das partes, do magistrado ou da própria lei. Assim " & printIf(|vectAutor|.size() > 1, "as partes autoras sabiam", "a parte autora sabia") & " previamente à assinatura do contrato de todas as obrigações dele decorrentes, e, uma vez que as aceitou, não pode eximir-se de cumprir com as suas obrigações." & #bl#,
+							print #bl#,
 							<cont> = <cont> + 1
 						}
 					},
@@ -765,7 +856,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 								use BRC_TutelaDeUrgencia_Imobliario
 							} else {
 								use BRC_TutelaDeUrgencia_Veiculo
-							}
+							},
+							print #bl#
 						}
 					},
 					branch[BRC_OnusDaProva] {
@@ -789,6 +881,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							print #parag# & "No presente caso, a prova destinada a provar os fatos alegados na inicial pode ser produzida " & |vectAutor|.grammar("pela parte autora") & ", ou seja, não se mostra presente a impossibilidade de " & printIf(|vectAutor|.size() > 1, "as partes autoras produzirem", "a parte autora produzir") & " prova de suas alegações que possa levar à inversão do ônus da prova." & #bl#,
 							print #parag# & "Ademais, ainda que assim não fosse, a hipossuficiência capaz de ensejar a inversão do ônus da prova, baseada no Código de Defesa do Consumidor, decorre da prévia e inequívoca demonstração da existência de uma intransponível dificuldade encontrada pelo consumidor para se desincumbir a contento do ônus probatório estabelecido no art. 373 do CPC, o que não ocorre no presente caso, onde não existe evidência da ocorrência de qualquer tipo de dificuldade ou óbice instransponível enfrentados " & |vectAutor|.grammar("pela parte autora") & ", não existindo, destarte, qualquer justificativa plausível para a transferência desse ônus para a parte ré." & #bl#,
 							print #parag# & "Diante do exposto, ainda que se entendesse aplicável o CDC ao presente caso, não há motivo para inversão do ônus da prova, permanecendo incólume a regra geral contida no art. 373, I, do CPC, segundo a qual o ônus da prova incumbe ao autor quanto ao fato constitutivo de seu direito." & #bl#,
+							print #bl#,
 							<cont> = <cont> + 1
 						}
 					},
@@ -836,7 +929,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 								use BRC_DepositoEmConsignacao_Imobliario
 							} else {
 								use BRC_DepositoEmConsignacao_Veiculo
-							}
+							},
+							print #bl#
 						}
 					}
 				}
@@ -863,23 +957,28 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					branch[BRC_Pedidos_Imobliario] {
 						operations {
 							if(<strPreliminares.alegaJG>) {
-								print <contTopic> & "." & <cont> & " seja acolhida a preliminar de impugnação da assistência judiciária gratuita para " & |vectAutor|.grammar("a parte autora") & ", uma vez que não foi comprovada sua hipossuficiência financeira;" & #bl#,
-								<cont> = <cont> + 1
+								print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de impugnação da assistência judiciária gratuita para " & |vectAutor|.grammar("a parte autora") & ", uma vez que não foi comprovada sua hipossuficiência financeira;",
+								<cont> = <cont> + 1,
+								print #bl#
 							},
 
-							print <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de suspensão da execução extrajudicial, retirada do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes, revisão contratual" & printIf(<strMerito.repeticaoDeindebito>, ", repetição de indébito", null) & ", compensação de valores" & printIf(<strMerito.tutelaProvisoria>, ", tutela antecipada", null) & printIf(<strMerito.inversaoOnus>, " e inversão do ônus da prova", null)	& ", conforme razões expostas;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de suspensão da execução extrajudicial, retirada do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes, revisão contratual" & printIf(<strMerito.repeticaoDeindebito>, ", repetição de indébito", null) & ", compensação de valores" & printIf(<strMerito.tutelaProvisoria>, ", tutela antecipada", null) & printIf(<strMerito.inversaoOnus>, " e inversão do ônus da prova", null)	& ", conforme razões expostas;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal." & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal.",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:",
 							print <strDocumentos.documentos>,
 							<cont> = <cont> + 1
 						}
@@ -888,42 +987,48 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						operations {
 							if(<strPreliminares.valoresIncontroversos>) {
 								if(<strPreliminares.ocorreuDeposito> == false) {
-									print <contTopic> & "." & <cont> & " seja acolhida a preliminar de inépcia da inicial e extinta a presente ação;" & #bl#,
+									print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de inépcia da inicial e extinta a presente ação;",
 									<cont> = <cont> + 1
 								}
 							},
 
 							if(<strMerito.tutelaProvisoria>) {
-								print <contTopic> & "." & <cont> & " seja mantido o indeferimento dos pedidos de tutela provisória de urgência, ante a necessidade de dilação probatória, conforme já reconhecido por este Douto Juízo;" & #bl#,
+								print #parag# & <contTopic> & "." & <cont> & " seja mantido o indeferimento dos pedidos de tutela provisória de urgência, ante a necessidade de dilação probatória, conforme já reconhecido por este Douto Juízo;",
 								<cont> = <cont> + 1
 							},
 
-							print <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de alteração das cláusulas e de consignação de pagamento, bem como a manutenção da decisão que julgou improcedente a tutela jurisdicional, conforme razões expostas;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de alteração das cláusulas e de consignação de pagamento, bem como a manutenção da decisão que julgou improcedente a tutela jurisdicional, conforme razões expostas;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;" & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;",
 							<cont> = <cont> + 1,
+							print #bl#,
 
-							print <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal." & #bl#,
+							print #parag# & <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal.",
 							<cont> = <cont> + 1,
-							
-							print <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
+							print #bl#,
+
+							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:",
 							print <strDocumentos.documentos>,
-							<cont> = <cont> + 1
+							<cont> = <cont> + 1,
+							print #bl#
 						}
 					}
 				}
 				operations {
-					print align(bold(<contTopic> & " Pedido"), "center"),
+					print align(bold(<contTopic> & " Pedido"), "center") & #bl#,
 					print #parag# & "Ante o exposto requer que" & #bl#,
 					if(<strModelo.modelo> == "Revisional imobiliária") {
 						use BRC_Pedidos_Imobliario
 					} else {
 						use BRC_Pedidos_Veiculo
 					},
+					print #bl#,
 					<contTopic> = <contTopic> + 1
 				}	
 			},
@@ -937,7 +1042,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					foreach(<advogado> IN |strEncerramento.listaDeAdvogados|) {
 						|advogadoQueAssina|.add(<advogado>.getByKey("Nome") & "\b" & <advogado>.getByKey("OAB"))
 					},
-					print #parag# & align("Termos em que, pede deferimento.", "center"),
+					print #parag# & align("Termos em que, pede deferimento.", "center") & #bl#,
 					print #parag# & align(firstUpper(<strEncerramento.localAssinatura>) & "/" & <strEncerramento.estado>.getByKey("Sigla") & ", " & expandedDate(<strEncerramento.dataPeticao>) & ".", "center") & #bl#,
 					foreach(<i> IN [0:|advogadoQueAssina|.size() - 1]) {
 						if (<i>%2 == 1) { 
@@ -957,6 +1062,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			}
  		}
 		operations {
+			use BRC_Estilo,
 			use BRC_Enderecamento,
 			use BRC_Qualificacao,
 			if(<strModelo.modelo> == "Revisional imobiliária") {
