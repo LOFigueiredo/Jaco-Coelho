@@ -556,7 +556,6 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					},
 					branch[BRC_BreveHistorico_Veiculo] {
 						operations {
-							print align(bold(<contTopic> & " Breve Histórico"), "center") & #bl#,
 							print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras que celebraram", "Alega a parte autora que celebrou") & " contrato de Alienação Fiduciária de um veículo com esta parte ré (CDC). " & printIf(|vectAutor|.size() > 1, "Alegam", "Alega") & " que a parte ré, aproveitando de sua vulnerabilidade, " & printIf(|vectAutor|.size() > 1, "lhes", "lhe") & " induziu a fechar o contrato com a presença de cláusulas abusivas, e que com a atual situação econômica, o contrato de financiamento tornou-se extremamente oneroso e indivíduos como " & |vectAutor|.grammar("a parte autora") & " agora necessitam do amparo judicial." & #bl#,
 							print #parag# & "Sendo assim, requer deste Douto Juízo a revisão das cláusulas contratuais de financiamento de veículo e consignação em pagamento das parcelas." & #bl#,
 							print #parag# & "Dá à causa o valor de R$ " & <strBreveHistorico.valorDaCausa> & " (" & expandedCurrency(<strBreveHistorico.valorDaCausa>) & "). Contudo, razão não " & printIf(|vectAutor|.size() > 1, "lhes", "lhe") & " assiste, conforme será exposto." & #bl#
@@ -844,7 +843,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print align(bold(<contTopic> & "." & <cont> & " Do Não Cabimento do Pedido de Tutela de Urgência"), "center") & #bl#,
 									print #parag# & "O art. 300 do NCPC estabelece os requisitos necessários para a antecipação dos efeitos da tutela de urgência, especificando que a parte deverá comprovar o perigo de dano ou o risco ao resultado útil do processo, o que não foi demonstrado a ponto de ensejar a antecipação da tutela." & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "As partes autoras pleitearam", "A parte autora pleiteou") & " o julgamento antecipado do mérito. No entanto, a matéria é de fato e de direito, o que impõe a produção de prova. No presente caso este Douto Juízo entendeu por não acatar o pedido de tutela antecipada por ora pois restou ausente os requisitos, quais sejam o " & it("periculum in mora") & ", uma vez que não há prova de inscrição ativa nos cadastros de proteção ao crédito nem de protestos, " & bold("sem efetiva comprovação de inscrição no aludido cadastro e, consequentemente, sem risco de dano. ") & "Ademais, eventual inscrição por inadimplência estaria em consonância com o ordenamento jurídico vigente." & #bl#,
-									print #parag# & "Requereu, ainda, autorização dos depósitos judiciais das parcelas vencidas e vincendas e a manutenção da posse do bem dado em garantia. Ocorre que, como muito bem pontuado por este D. Juízo, tais medidas não apresentam as condições de deferimento liminar, haja vista a necessidade de dilação probatória e contraditório mínimo." & #bl#,
+									print #parag# & printIf(|vectAutor|.size() > 1, "Requereram", "Requereu") & ", ainda, autorização dos depósitos judiciais das parcelas vencidas e vincendas e a manutenção da posse do bem dado em garantia. Ocorre que, como muito bem pontuado por este D. Juízo, tais medidas não apresentam as condições de deferimento liminar, haja vista a necessidade de dilação probatória e contraditório mínimo." & #bl#,
 									print #parag# & "Ademais, se a tutela pretendida for antecipada, ela será irreversível, não podendo ser concedida, consoante disposto no artigo 300, § 3º, pois patente que seria totalmente inviável a aplicação do disposto no artigo 302 desta Lei, culminando no periculum in mora reverso, fator impeditivo à pretensão antecipatória." & #bl#,
 									print #parag# & "Na verdade, o pedido de antecipação da tutela é de sorte o próprio mérito e não pode ser decidido perfunctoriamente, sob pena de cerceamento de defesa e ofensa à segurança jurídica, razão pela qual requer seja indeferido o pedido de antecipação dos efeitos da tutela, por ausência dos requisitos necessários para tal concessão." & #bl#,
 									print #parag# & "Diante de sua sabedoria e entendimento acerca das leis, este Juízo ainda já se decidiu acerca do pedido de tutela antecipada nesses autos indeferindo tal pedido por ora, com isso, requer-se a manutenção da improcedência do pedido de julgamento antecipado do mérito, mantendo-se a dilação probatória e o normal julgamento do feito." & #bl#,
@@ -904,7 +903,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									citation("DIREITO CIVIL E PROCESSO CIVIL. SFH. ILEGITIMIDADE PASSIVA AD CAUSAM DA SEGURADORA. PERÍCIA DESNECESSÁRIA. CDC. PES - MUTUÁRIO AUTÔNOMO CONTRATO POSTERIOR À CF/88 - INAPLICABILIDADE DO SALÁRIO MÍNIMO. SEGURO. TCA. TABELA PRICE X SAC. TR. AMORTIZAÇÃO. JUROS. MULTA MORATÓRIA. DL 70/66. ANTECIPAÇÃO DA TUTELA -AUSÊNCIA DE REQUISITOS. (...) 6. Não há prova nos autos de que os índices aplicados pelo agente financeiro para reajuste das prestações mensais tenham sido abusivos ou aumentado o comprometimento da renda do mutuário (autônomo) - quebra da equivalência renda-salário. Ao contrário, vê-se que o aumento da prestação não foi causa determinante da inadimplência , que teve início em Abril/2000, após o pagamento de apenas 14 prestações, quando o encargo inicial tinha subido apenas R$ 9,00 (nove reais). (...)18. Apelação da Autora desprovida.\b(AC 200138000315415, JUIZ FEDERAL PEDRO FRANCISCO DA SILVA (CONV.), TRF1 - QUINTA TURMA, 03/07/2009)."),
 									print #bl#,
 									print #parag# & "Face a todo o exposto, resta comprovado que o valor da prestação cobrado pela parte ré é regular e que a ausência de pagamento das parcelas é que acarretou a execução extrajudicial contra " & |vectAutor|.grammar("a parte autora") & "." & #bl#,
-									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("da parte autora") & " no tocante a permissão dos depósitos dos valores e do pedido de compensação de valores, uma vez que não houveram vícios contratuais por parte desta ré." & #bl#,
+									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("da parte autora") & " no tocante a permissão dos depósitos dos valores e do pedido de compensação de valores, uma vez que não houve vícios contratuais por parte desta ré." & #bl#,
 									<cont> = <cont> + 1
 								}
 							},
@@ -939,11 +938,11 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					print align(bold(<contTopic> & " Mérito"), "center") & #bl#,
 					use BRC_ClausulasContratuais_RealidadeDosFatos,
 					use BRC_ImprocedenciaDosPedidos,
-					if(<strMerito.tutelaProvisoria>) {
-						use BRC_TutelaDeUrgencia
-					},
 					if(<strModelo.modelo> == "Revisional veículo") {
 						use BRC_InexistenciaDeFalha
+					},
+					if(<strMerito.tutelaProvisoria>) {
+						use BRC_TutelaDeUrgencia
 					},
 					if(<strMerito.inversaoOnus>) {
 						use BRC_OnusDaProva
@@ -1048,13 +1047,15 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							if(<strPreliminares.valoresIncontroversos>) {
 								if(<strPreliminares.ocorreuDeposito> == false) {
 									print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de inépcia da inicial e extinta a presente ação;",
-									<cont> = <cont> + 1
+									<cont> = <cont> + 1,
+									print #bl#
 								}
 							},
 
 							if(<strMerito.tutelaProvisoria>) {
 								print #parag# & <contTopic> & "." & <cont> & " seja mantido o indeferimento dos pedidos de tutela provisória de urgência, ante a necessidade de dilação probatória, conforme já reconhecido por este Douto Juízo;",
-								<cont> = <cont> + 1
+								<cont> = <cont> + 1,
+								print #bl#
 							},
 
 							print #parag# & <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de alteração das cláusulas e de consignação de pagamento, bem como a manutenção da decisão que julgou improcedente a tutela jurisdicional, conforme razões expostas;",
