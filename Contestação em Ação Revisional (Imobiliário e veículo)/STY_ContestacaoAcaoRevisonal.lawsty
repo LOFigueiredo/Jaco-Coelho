@@ -44,7 +44,7 @@ list-font-bold:true;
 list-recursive:true;
 list-spacing:0;
 list-left-delimiter:;
-list-right-delimiter:.;
+list-right-delimiter:;
 
 table-field-color: #EFEFEF;
 table-null-values:false;
