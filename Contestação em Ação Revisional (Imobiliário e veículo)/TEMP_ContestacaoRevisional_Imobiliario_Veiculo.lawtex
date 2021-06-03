@@ -40,7 +40,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						name = "A ação foi proposta em vara federal ou juizado especial federal?"
 						atomic = true
 					},
-					+[vara] : Integer where ("\d\r") {
+					&[vara] : Integer where ("\d\r") {
 						name = "Vara"
 					},
 					+[comarca] : String {
@@ -233,7 +233,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						},
 						+[strEnderecoImovel] : Struct {
 							name = "Endereço do imóvel"
-							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", " & [cidade] & "-" & [estado].getByKey("Preposição") & " " & [estado] /*& ", CEP: " & [codigoPostal]*/
+							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", " & [cidade] & "-" & [estado].getByKey("Sigla")/*& ", CEP: " & [codigoPostal]*/
 							fields {
 								/*+[codigoPostal] : String where("CEP") {
 									name = "CEP"
@@ -477,7 +477,14 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			},
  			branch[BRC_Enderecamento] {
 				operations {
-					print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal", "do " & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ") & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center") & #bl#,
+					print bold(align("Ao Juízo ", "center")),
+					if(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal") {
+						print bold(align(printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), "center"))
+					} else {
+						print bold(align(printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal "), "center"))
+					},
+					print bold(align("da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & ".", "center")),
+					print #bl#,
 					print #bl#,
 					print #bl#,
 					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
@@ -549,7 +556,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 				declarations {
 					branch[BRC_BreveHistorico_Imobiliario] {
 						operations {
-							print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras que celebraram", "Alega a parte autora que celebrou") & " contrato com esta parte ré de financiamento de imóvel em " & <strBreveHistorico.valorDaCausa> & ". " & printIf(|vectAutor|.size() > 1, "Alegam", "Alega") & " também que os termos compactuados em contrato não estão sendo cumpridos por esta, uma vez que " & printIf(|vectAutor|.size() > 1, "as partes autoras defendem", "a parte autora defende") & " que a parte ré informou que as prestações diminuiriam de valor a cada mês (decrescentes), o que não ocorreu." & #bl#,
+							print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras que celebraram", "Alega a parte autora que celebrou") & " contrato com esta parte ré de financiamento de imóvel em " & <strBreveHistorico.dataDaCelebracao> & ". " & printIf(|vectAutor|.size() > 1, "Alegam", "Alega") & " também que os termos compactuados em contrato não estão sendo cumpridos por esta, uma vez que " & printIf(|vectAutor|.size() > 1, "as partes autoras defendem", "a parte autora defende") & " que a parte ré informou que as prestações diminuiriam de valor a cada mês (decrescentes), o que não ocorreu." & #bl#,
 							print #parag# & "Sendo assim, " & printIf(|vectAutor|.size() > 1, "as partes autoras pugnam", "a parte autora pugna") & " pela procedência de seus pedidos de revisão das cláusulas" & printIf(<strMerito.tutelaProvisoria>, " e de tutela antecipada.", ".") & #bl#,
 							print #parag# & "Dá à causa o valor de R$ " & <strBreveHistorico.valorDaCausa> & " (" & expandedCurrency(<strBreveHistorico.valorDaCausa>) & "). Contudo, razão não lhe assiste, conforme será exposto." & #bl#	
 						}
@@ -599,7 +606,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 										print #parag# & "Em relação à taxa de juros cobrada esclarece que a taxa de juros inicial pactuada é de " & <strInfoContratuais.taxaDeJurosAnual> & "% a.a, reduzida para " & <strInfoContratuais.taxaDeJurosAnualComDesconto> & "% a.a. como um benefício em virtude de reciprocidade no relacionamento com a parte ré mediante o pagamento por meio de débito automático em conta/folha, e a contratação dos demais produtos constantes no contrato, via de regra crédito rotativo e cartão de crédito, mas que não se confunde com venda casada, uma vez que a qualquer momento o mutuário pode cancelar os produtos com o consequente cancelamento da redução da taxa de juros." & #bl#
 									},
 									print #parag# & bold("Consta na planilha de evolução que ocorreu a exclusão da taxa reduzida de juros em " & <strInfoContratuais.exclusaoDaTaxa> & ", em razão de inadimplência.") & " Desta forma, constata-se que NÃO procede a alegação de cobrança de juros de forma capitalizada, cuja verificação pode realizada mediante o cálculo sobre qualquer saldo devedor atualizado monetariamente, conforme exemplos abaixo, nos quais verifica-se que não existiu nenhuma diferença em relação aos valores cobrados pela parte ré, mas eventualmente arredondamento de casas decimais. Vejamos:" & #bl#,
-									attach("imagemPlanilhaDeEvolucao.png", "center"),
+									attach("imagemPlanilhaDeEvolucao.png", "center", null, null, "14cm"),
 									print #bl#,
 									print #parag# & "Por oportuno, esclarece esta parte ré que a taxa efetiva anual, obtida a partir da capitalização da taxa de juros mensal, não é aplicada no contrato, uma vez que possui caráter meramente informativo com a finalidade de atender às regulamentações do BACEN relacionadas ao CET. Não há aplicação de CES (Coeficiente de Equivalência Salarial), pois não há vinculação com equivalência salarial." & #bl#,
 									print #parag# & "Vale ressaltar que o reajuste do valor financiado e demais encargos não estão vinculados ao salário do mutuário ou vencimento da sua categoria profissional, portanto não cabe revisão de índices para o contrato. Além disso, a apuração de renda ocorre quando da contratação do financiamento para fins de enquadramento da operação na modalidade de crédito e apuração da capacidade de pagamento, não havendo qualquer vínculo do financiamento com o comprometimento de renda/reajustes salariais dos mutuários. Da mesma forma, não existe vínculo com a composição da estrutura familiar." & #bl#,
