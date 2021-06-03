@@ -233,7 +233,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						},
 						+[strEnderecoImovel] : Struct {
 							name = "Endereço do imóvel"
-							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", " & [cidade] & "-" & [estado].getByKey("Sigla")/*& ", CEP: " & [codigoPostal]*/
+							id = [logradouro] & printIf([numero].isNotEmpty(), ", nº " & [numero], null) & printIf([complemento].isNotEmpty(), ", " & [complemento], null) & printIf([bairro].isNotEmpty(), ", " & [bairro], null) & ", " & [cidade] & " - " & [estado].getByKey("Sigla")/*& ", CEP: " & [codigoPostal]*/
 							fields {
 								/*+[codigoPostal] : String where("CEP") {
 									name = "CEP"
@@ -477,19 +477,14 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			},
  			branch[BRC_Enderecamento] {
 				operations {
-					print bold(align("Ao Juízo ", "center")),
-					if(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal") {
-						print bold(align(printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), "center"))
-					} else {
-						print bold(align(printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal "), "center"))
-					},
-					print bold(align("da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & ".", "center")),
+					print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal", printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal ")) & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"),
 					print #bl#,
 					print #bl#,
 					print #bl#,
 					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
 					print "Parte Autora:\t\t" & |vectAutor|.vect2str("%f, %s, %p e %l") & "\b",
-					print "Parte Ré:\t\t\tCaixa Econômica Federal" & #bl#,
+					print "Parte Ré:\t\t\tCaixa Econômica Federal",
+					print #bl#,
 					print #bl#
 				}
 			},
