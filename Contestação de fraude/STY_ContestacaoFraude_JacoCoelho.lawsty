@@ -1,0 +1,47 @@
+page-size: A4 portrait;
+page-margin: 30mm 20mm 28mm 30mm;
+content-margin: 0mm 0mm 0mm 0mm;
+
+page-number: true;
+numbering-page-mask: Página %c de %p;
+numbering-position: footer;
+numbering-align: center;
+
+font-size: 12;
+font-family: Arial;
+font-color: #000;
+
+text-align:justify;
+
+line-height:100%;
+
+title-uppercase:true;
+title-font-size:12;
+title-mask:1.1.1.1.1.;
+title-tab:false;
+title-max-level:3;
+title-align:center;
+
+head-title-font-size: 0;
+
+citation-size:40;
+citation-font-size:10;   
+citation-line-height:100%;
+
+footer-font-size:8;
+footer-font-family:Arial;
+footnote-align:justify;
+footnote-spacing:0;
+
+parag-mask:1.1.1.1.1.;
+parag-size:13;
+parag-recursive:true;
+parag-number-of-spaces:0;
+
+list-enum:true;
+list-font-size:12;
+list-font-bold:true;
+list-recursive:true;
+list-spacing:0;
+list-left-delimiter:;
+list-right-delimiter:;

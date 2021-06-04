@@ -1,0 +1,596 @@
+template[TEMP_ContestacaoFraude_JacoCoelho] { 
+	metainfo { 
+		language = "pt_BR"
+		name = "Contestação de fraude"
+		style = "STY_ContestacaoFraude_JacoCoelho.lawsty"
+		declarations {
+			//Constantes
+			-#parag# : String {value = "<p class = 'paragrafo'>"},
+			-#dbl# : String {value = "</p>\b\b"},
+			-<contTopic> : Integer {default = 1},
+			//Listas
+			list[ListaAdvogados_JacoCoelho] {
+				fields = {"Nome", "OAB"}
+				options = ({"Jacó Carlos Silva Coelho", "OAB/GO 13.721"},
+										{"Allinne Rizzie Coelho Oliveira Garcia","OAB/GO 24.549"}, 
+										{"Claudinéia Santos Pereira","OAB/GO 22.376"},
+										{"Lucimer Coelho de Freitas","OAB/GO 33.001"},
+										{"Fabiane Gomes Pereira","OAB/GO 30.485"},
+										{"Daniele de Faria Ribeiro Gonzaga","OAB/GO 36.528"})
+				type = "String"
+			},
+			//Estruturas
+			+<strModelo> : Struct {
+				name = "Modelo"
+				fields {
+					+[modelo] : List ("Revisional imobiliária", "Revisional veículo") {
+						name = "Modelo"
+						request = "Selecione o modelo da defesa"
+						atomic = true
+					}
+				}
+			},
+			+<strDadosDoProcesso> : Struct {
+				name = "Dados do processo"
+				fields {
+					+[numero] : String where ("\d\d\d\d\d\d\d-\d\d.\d\d\d\d.\d.\d\d.\d\d\d\d") {
+						name = "Número do processo"
+					},
+					+[ehVaraOuJuizado] : List ("Juizado especial federal", "Vara federal") {
+						name = "A ação foi proposta em vara federal ou juizado especial federal?"
+						atomic = true
+					},
+					&[vara] : Integer where ("\d\r") {
+						name = "Vara"
+					},
+					+[comarca] : String {
+						name = "Comarca"
+					},
+					+[uf] : List [*Uf] {
+						name = "Estado de tramitação"
+						atomic = true
+					}
+				}
+			},
+			+|vectAutor| : Vector[Struct] {
+				name = "Autor"
+				id = [nome] 
+				fields {
+					+[nome] : String {
+						name = "Nome"
+						request = "Informe o nome do autor"
+					},
+					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
+						name = "Tipo de pessoa"
+						request = "Selecione o tipo de pessoa"
+						atomic = true
+						default = "Pessoa Jurídica"
+					},
+					-[genero] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						request = "Selecione o gênero do autor"
+						help = "É necessário selecionar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+						default = "Feminino"
+					}
+				}
+				loaders {
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						[genero].default = "Feminino"
+					} else {
+						[genero].mandatory = "+"
+					}
+				}
+			},
+			/*+|vectReu| : Vector[Struct] {
+				name = "Réu"
+				fields {
+					+[nome] : String {
+						name = "Nome"
+						request = "Informe o nome do réu"
+					},
+					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
+						name = "Tipo de pessoa"
+						request = "Selecione o tipo de pessoa"
+						atomic = true
+						default = "Pessoa Jurídica"
+					},
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						+[cnpj] : String where ("CNPJ") {
+							name = "CNPJ"
+							request = "Informe o CNPJ do réu"
+						}
+					} else {
+						+[cpf] : String where ("CPF") {
+							name = "CPF"
+							request = "Informe o CPF do réu"
+						}
+					},
+					-[genero] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						request = "Selecione o gênero do réu"
+						help = "É necessário informar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+					}
+				}
+				loaders {
+					[nome].default = "Caixa Econômica Federal",
+					if([tipoPessoa] == "Pessoa Jurídica") {
+						[genero].default = "Feminino",
+						[cnpj].default = "00.360.305/0001-04"
+					} else {
+						[genero].mandatory = "+"
+					}
+				}
+			},*/
+			+<strDocumentos> : Struct {
+				name = "Documentos"
+				fields {
+					+[documentos] : List ("Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento", "Planilha de evolução do contrato") {
+						name = "Documentos"
+						request = "Selecione os documentos que deseja juntar"
+						atomic = false
+					},
+					-|recebeDocs| : Vector[String]
+				}
+				loaders {
+					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
+						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento"} 
+					} else {
+						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Planilha de evolução do contrato"}
+					}
+				}
+			},
+			+<strEncerramento> : Struct {
+				name = "Encerramento"
+				fields {
+					+[dataPeticao] : Date {
+						name = "Data de assinatura"
+						default = today()
+					},
+					+[localAssinatura] : String {
+						name = "Local de assinatura"
+						request = "Cidade de assinatura"
+					},
+					+[estado] : List[*Uf] {
+						name = "Estado"
+						request = "Estado de assinatura"
+						atomic = true
+					},
+					&[listaDeAdvogados] : List[ListaAdvogados_JacoCoelho] {
+						name = "Advogado subscritor"
+						request = "Selecione o advogado que assinará a petição"
+						atomic = false
+						default = "Jacó Carlos Silva Coelho"
+					}
+				}
+			}
+		} 
+	} 
+	head { 
+		title = null 
+ 	} 
+ 	body {
+ 		declarations {
+ 			branch[BRC_Estilo] {
+				declarations {
+					branch[CSS_Titulo] {
+						operations {
+							print "<style>
+								h1, h2, h3, h4 {
+									text-align: center;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Paragrafo] {
+						operations {
+							print "<style>
+								.paragrafo {
+									text-indent: 30mm;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Citacao] {
+						operations {
+							print "<style>
+								.citation {
+									margin: 0pt 0pt 0pt 40mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Lista] {
+						operations {
+							print "<style>
+								ul, ol, li {
+									margin: 0pt 0pt 0pt 60mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+								.print-content li {
+									margin: 0pt 0pt 0pt 0pt;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Tabela] {
+						operations {
+							print "<style>
+								table.acordao,
+								table.acordao tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.acordao td {
+									border: 1px solid black;
+									text-align: justify;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+
+								table.advsAssinam,
+								table.advsAssinam tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.advsAssinam td {
+									border: none;
+									vertical-align: top;
+									font-size: 12pt;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+							</style>"
+						}
+					}
+				}
+				operations {
+					use CSS_Titulo,
+					use CSS_Paragrafo,
+					use CSS_Citacao,
+					use CSS_Lista,
+					use CSS_Tabela
+				}
+			},
+			branch[BRC_Enderecamento] {
+				operations {
+					print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal", printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal ")) & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"),
+					print #bl#,
+					print #bl#,
+					print #bl#,
+					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
+					print "Parte Autora:\t\t" & |vectAutor|.vect2str("%f, %s, %p e %l") & "\b",
+					print "Parte Ré:\t\t\tCaixa Econômica Federal",
+					print #bl#,
+					print #bl#
+				}
+			},
+			branch[BRC_Qualificacao] {
+				operations {
+					print #parag# & bold("Caixa Econômica Federal, ") & "Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " & printIf(<strModelo.modelo> == "Revisional imobiliária", bold("Contestação à AÇÃO REVISIONAL DE CONTRATO" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE ANTECIPAÇÃO DE TUTELA", null)), bold("Contestação à AÇÃO REVISIONAL C/C COM AÇÃO CONSIGNATÓRIA" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE TUTELA DE URGÊNCIA CAUTELAR ANTECEDENTE", null))) & ", movida por " & |vectAutor|.vect2str("<b>%f</b>, <b>%s</b>, <b>%p</b> e <b>%l</b>") & ", já " & |vectAutor|.grammar("qualificado") & " na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
+				}
+			},
+			branch[BRC_Fraude_FgtsAuxEmergencial] {
+				declarations {
+					topic[TOP_BreveHistorico_FgtsAuxEmergencial] {
+						title = bold("Breve Histórico\b")
+						operations {
+							print #parag# & "O autor ingressou com a presente ação visando seja a CAIXA condenada à indenização de danos morais e materiais sob a alegação de que foi realizado saque fraudulento de seu saque emergencial do FGTS." & #dbl#
+						}
+					},
+					topic[TOP_Merito_FgtsAuxEmergencial] {
+						title = "Mérito\b"
+						declarations {
+							topic[TOP_DanoMaterial] {
+								title = bold("Da Impossibilidade de se reconhecer dano Material\b")
+								operations {
+									print #parag# & "Em apertada síntese, busca a parte autora com a presente ação à condenação da CAIXA em indenização de danos morais e materiais, sob alegação de que foi realizado saque em sua conta vinculada de FGTS, cuja operação teria sido perpetrada por terceira pessoa, vez que ela não havia sacado." & #dbl#,
+									print #parag# & "Conforme registrado nos autos pela própria parte autora, a conta vinculada em nome de Aparecida de Oliveira Cardoso, teve o valor sacado. De acordo com o lançamento, o valor foi liberado com fundamento na Medida Provisória 946/2020 – todo o saque emergencial do FGTS deve ser efetuado por meio da conta social." & #dbl#,
+									print #parag# & "O valor foi disponibilizado e pago através da conta social em nome de Aparecida de Oliveira Cardoso, o valor de FGTS liberado é utilizado por meio do aplicativo Caixa Tem. Conforme anexo, o valor foi creditado na conta social da autora e o valor foi utilizado em 23/09/2020." & #dbl#,
+									print #parag# & "No entanto, há de se frisar que a Caixa não cometeu ilícito algum que enseje a condenação em danos morais e tão pouco em obrigação de pagar quantias que não mais estão depositadas na conta de FGTS do fundista, até que o autor formalize administrativamente a sua contestação de saque, de modo que análise interna possa reconhecer que o saque tenha sido realizado de fato mediante fraude de terceiros e/ou clonagem do cartão cidadão." & #dbl#,
+									print #parag# & "Esclarece que a parte autora procurou a Caixa e abriu processo de Contestação, porém, após análise minuciosa, essa parte ré finalizou o processo com a seguinte conclusão: " & bold("“NÃO indicando o ressarcimento ao cliente. Esclarecemos que a conclusão acima decorre da aplicação de critérios técnicos de análise das transações financeiras eletrônicas, que são restritos às áreas de Segurança da CAIXA e à Polícia Federal, devido ao sigilo desses critérios e para resguardar o Sistema Bancário. O cliente poderá solicitar o registro de um novo processo de contestação, desde que sejam trazidos novos argumentos ou fatos relevantes, a fim de trazer mais informações para nova avaliação do processo.”") & #dbl#,
+									print #parag# & "Neste sentido, informa-se que o procedimento nestas circunstâncias é que o cliente procure a agência titular da conta para que se abra um processo administrativo novamente, caso traga fatos e argumentos novos e relevantes, de verificação da irregularidade com pedido de ressarcimento pelos valores sacados, ocasião em que será apurado se as peculiaridades do caso podem fazer concluir pela existência de fraude e existência ou não de responsabilidade do cliente para com o evento, culminando com a efetiva devolução dos valores ou apontada eventual culpa do próprio titular da conta." & #dbl#,
+									print #parag# & "Conforme percebe-se acima, essa parte ré NÃO localizou qualquer irregularidade no saque realizado." & #dbl#,
+									print #parag# & "Assim, considerado que não foi esgotada a via administrativa para elucidação dos aspectos envolvidos no saque, especialmente considerando que o saque foi realizado com o uso de senha pessoal intransferível, necessário que o autor se disponha a concordar com as investigações de praxe via do processo de contestação de saque disponibilizado nas Agências, sob pena de ter o processo extinto sem julgamento do mérito, ou, no caso de negativa do autor, seja considerado seu ato como prova de sua culpa exclusiva pela inexistência de recomposição de sua conta vinculada e como, decorrência, que os seus pedidos sejam julgados improcedentes." & #dbl#
+								}
+							},
+							topic[TOP_DanoMoral] {
+								title = bold("Do Dano Moral\b")
+								operations {
+									print #parag# & "Por outro lado, não é razoável exigir que a requerida responda por qualquer dano na órbita moral, tendo em vista que agiu com transparência, informando os procedimentos adotados. " & #dbl#,
+									print #parag# & "Com efeito, é cediço no ordenamento jurídico vernáculo, que para ocorrer o dever de indenizar é necessária a presença de três elementos basilares: conduta ilícita, resultado danoso e nexo causal entre a conduta e o resultado." & #dbl#,
+									print #parag# & "Ainda que o conflito experimentado tenha conexão com os sistemas e processamentos internos desta empresa, o fato não se deu por negligência, imperícia ou imprudência nos atos pessoais da Operadora do FGTS. " & #dbl#,
+									print #parag# & "Assim, não basta a existência de um fato, mas que dele resulte consequências danosas, prejuízos reais. Portanto, mesmo que admitida como correta a desvinculação do dano moral do dano material, a indenização por danos morais somente é devida quando o fato realmente lesar a moral ou a honra. Admitir de outra forma seria fomentar ainda mais a já enorme indústria do dano moral, uma vez que bastaria o fato, para que surgisse a obrigação de indenizar. Seria o caos no judiciário brasileiro." & #dbl#,
+									print #parag# & "Repita-se que isso não é admitido em nosso ordenamento, que exige para que ocorra a obrigação de indenizar a existência de conduta ilícita, resultado danoso e nexo de causalidade." & #dbl#,
+									print #parag# & "Sobre o tema cabe trazer à colação a sábia lição do mestre SÍLVIO DE SALVO VENOSA:" & #dbl#,
+									print #parag# & "“Somente haverá a possibilidade de indenização se o ato ilícito ocasionar dano. Cuida-se, portanto, do dano injusto. Em concepção mais moderna, pode-se entender que a expressão dano injusto traduz a mesma noção de lesão a um interesse, expressão que se torna mais própria modernamente, tendo em vista ao vulto que tomou a responsabilidade civil. Falamos anteriormente que, no dano moral, leva-se em conta a dor psíquica ou mais propriamente o desconforto comportamental. Trata-se, em última análise, de interesses que são atingidos injustamente. O dano ou interesse violado deve ser atual e certo, não sendo indenizáveis a princípio, danos hipotéticos. Sem o dano ou sem interesse violado, patrimonial ou moral, não se corporifica a indenização. A materialização do dano ocorre com a definição do efetivo prejuízo suportado pela vítima” (Direito Civil, Volume IV, Responsabilidade Civil, 3ª edição, 2003, página 28- grifei)." & #dbl#,
+									print #parag# & "Assim sendo, inaceitável a alegação de que a indenização ocorre do fato e prescinde de prova do dano." & #dbl#,
+									print #parag# & "Mero dissabor, aborrecimento, mágoa, irritação ou sensibilidade exacerbada não podem ingressar na órbita do dano moral." & #dbl#,
+									print #parag# & "Como se acentuou em linhas volvidas, não houve qualquer dano material e como corolário nada há como reflexo que possa ser qualificado como dano moral, mormente em valores tão exorbitantes que caracteriza a pretensão de enriquecimento ilícito da parte." & #dbl#,
+									print #parag# & "O caráter pedagógico da indenização seria a punição da demandada por prática de ato ilícito em desfavor do demandante, fato que não se evidencia no caso sub judice." & #dbl#,
+									print #parag# & "Ademais, note-se que não houve violação à honra e à imagem, e, ainda, não há provas, ou indícios de efetivo dano moral, o alegado saque na conta vinculada ao FGTS do autor não lhe trouxe qualquer prejuízo ou constrangimento posto que sacado pelo próprio autor." & #dbl#,
+									print #parag# & "É necessário haver razoabilidade nas alegações de violação à honra e à imagem das pessoas para que se possa cogitar de indenização a esse título, razoabilidade essa inexistente no presente caso." & #dbl#,
+									print #parag# & "Concernente ao pleito de ressarcimento por dano material verifica-se novo oportunismo e má-fé do requerente ao provocar vossa jurisdição, por meio desta ação. Não há nos autos a demonstração de qualquer prejuízo patrimonial experimentado com o evento equivocadamente narrado ou mesmo um nexo de causalidade." & #dbl#,
+									print #parag# & bold("Ainda que se cogite a ocorrência de fraude no Saque Emergencial do FGTS, o que não está evidenciado nos autos") & ", cumpre asseverar que a CAIXA realizou a maior operação de inclusão social, bancária e digital do Brasil, uma complexa operação para o pagamento de mais de R$ 294 bilhões do Auxílio Emergencial a 68 milhões de pessoas, sendo que este processo de pagamento nesta proporção gigantesca não está imune a tentativas de fraude. " & #dbl#,
+									print #parag# & bold("No entanto, ainda que tenha ocorrido alguma irregularidade no saque do benefício, o que se cogita em mera hipótese argumentativa, não há que se falar em dano moral, sendo cabível, acaso devido, tão somente o ressarcimento do prejuízo material, caso reste demonstrado nos autos a suposta fraude. ") & #dbl#,
+									print #parag# & "Frise-se que o valor de R$ 1.045,00 foi liberado da conta vinculada do FGTS da parte autora com fundamento na Medida Provisória nº 946/2020, e imediatamente creditado em conta digital social, por meio do aplicativo Caixa TEM, conforme extrato da conta poupança anexo." & #dbl#,
+									print #parag# & "Para o Agente Operador do FGTS, o saque do FGTS e o crédito na poupança digital ocorreu de forma regular e dentro do previsto na Medida Provisória." & #dbl#,
+									print #parag# & "Portanto, faz-se imperioso que Vossa Excelência julgue pela total improcedência concernente ao pleito das indenizações por danos morais." & #dbl#
+								}
+							},
+							topic[TOP_Conciliacao] {
+								title = bold("Da Conciliação\b")
+								operations {
+									print #parag# & "No que tange do eventual interesse em conciliar, insta esclarecer que as informações prestadas, de início, nos fazem presumir pela existência de fraude realizada por terceiros e/ou a clonagem do cartão cidadão, porém, somente com as informações no processo de contestação de saque é que as informações prestadas pelo autor trariam condições de ser feita a análise necessária." & #dbl#,
+									print #parag# & "Assim, desde já, requer seja designada audiência de conciliação para que nesse interregno a CAIXA possa receber as informações próprias do caso e em conjunto com autor, na audiência, sejam levantadas as questões próprias da análise da ocorrência de fraude eventual." & #dbl#
+								}
+							},
+							topic[TOP_CustasProcessuais] {
+								title = bold("Da Impossibilidade De Condenação Ao Pagamento Das Custas Processuais")
+								operations {
+									print #parag# & "Com relação às custas processuais, sabe-se que nas ações de FGTS não são devidas, visto que a ação foi ajuizada após Lei nº. 9.028/95. Segundo o § único do art. 24-A desta lei a isenção do pagamento de custas à União e demais entes federativos, estende-se a todos os processos administrativos e judiciais em que for parte o Fundo de Garantia do Tempo de Serviço - FGTS, seja no polo ativo ou passivo, extensiva a isenção à pessoa jurídica que o representar em Juízo ou fora dele." & #dbl#,
+									print #parag# & "Não é procedente, portanto, qualquer pretensão nesse sentido." & #dbl#
+								}
+							}
+						}
+						operations {
+							use TOP_DanoMaterial,
+							use TOP_DanoMoral,
+							use TOP_Conciliacao,
+							use TOP_CustasProcessuais
+						}
+					},
+					topic[TOP_Pedidos_FgtsAuxEmergencial] {
+						title = bold("Dos Requerimentos")
+						operations {
+							print #parag# & "Ante o exposto, respeitosamente, a Caixa Econômica Federal, ratificando as razões acima expendidas, requer a Vossa Excelência a designação de audiência de conciliação pelas razões supra;" & #dbl#,
+							print #parag# & "Como pedido sucessivo, a extinção do processo, sem resolução do mérito posto que não comprovada a culpa e ilicitude da Caixa no caso em comento e nem esgotada a via administrativa para a solução do impasse, ou, de qualquer forma que se digne em julgar improcedentes os pedidos do autor de danos materiais e morais." & #dbl#,
+							print #parag# & "Protesta pela produção de provas em direito admitidas, inclusive pela juntada de documentos." & #dbl#,
+							print #parag# & "Requer que as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de email intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal. " & #dbl#,
+							print #parag# & "Finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #dbl#,
+							print #parag# & "- Procuração;" & #dbl#,
+							print #parag# & "- Substabelecimento." & #dbl#
+						}
+					}
+				}
+				operations {
+					use TOP_BreveHistorico_FgtsAuxEmergencial,
+					use TOP_Merito_FgtsAuxEmergencial,
+					use TOP_Pedidos_FgtsAuxEmergencial
+				}
+			},
+			branch[BRC_Fraude_CulpaExclusivaFatoDeTerceiro] {
+				declarations {
+					topic[TOP_Preliminares] {
+						title = bold("Preliminarmente\b")
+						declarations {
+							topic[TOP_InepciaDaInicial] {
+								title = bold(" Inépcia da Inicial por Ausência de Documentos Essenciais\b")
+								operations {
+									print #parag# & "O art. 320 do CPC determina que a petição inicial deverá ser instruída com os documentos indispensáveis à propositura da ação." & #dbl#,
+									print #parag# & "No caso dos autos, trata-se de pedido de indenização dano moral por suposto abuso da ré ao não realizar a devolução do valor depositado pela autora na conta de terceiro mediante suposto golpe, " & bold("fazendo necessária, portanto, a juntado do boletim de ocorrência para comprovação do suposto alegado") & "." & #dbl#,
+									print #parag# & "Não observando tal regramento, ferir-se-á o exercício dos princípios do contraditório, da ampla defesa, violando os preceitos dos artigos 373, inciso I, e 369 do CPC." & #dbl#,
+									print #parag# & "Pelo exposto, deve ser declarada a inépcia da inicial, com a consequente extinção do feito, nos termos dos artigos 320, 321 c/c 434 e 485, inciso I, todos do CPC." & #dbl#,
+									print #parag# & "1.2" & bold(" Da Necessária Quebra do Sigilo Bancário para Demonstração de Prova Documental") & #dbl#,
+									print #parag# & "A parte ré requer autorização deste MM. Juízo para a quebra do sigilo bancário, a fim de proceder a juntada aos autos do extrato bancário da titular da conta Sra.  Sabrina dos S. Ribeiro favorecida com o depósito realizado pela autora, com suas movimentações do mês de janeiro de 2020, o qual é necessário para validar as teses defendidas por esta parte ré, uma vez que este extrato demonstrará se o valor informado pelo autor em sua exordial foi realmente depositado ou não." & #dbl#,
+									print #parag# & "Esclarece-se que o referido documento possui confidência resguardada pela Lei 105/2001 que rege acerca do sigilo das operações de instituições financeiras, sendo necessária, portanto, a autorização deste Douto Juízo para quebra do sigilo em relação aos mesmos e a consequente autorização para juntada nos autos. " & #dbl#,
+									print #parag# & "Portanto, requer-se o deferimento pedido de quebra de sigilo para apresentação dos extratos bancários da parte autora" & #dbl#
+								}
+							}
+						}
+						operations {
+							use TOP_InepciaDaInicial
+						}
+					},
+					topic[TOP_BreveHistorico] {
+						title = bold("Breve Histórico\b")
+						operations {
+							print #parag# & "Narra na inicial a parte autora que foi vítima de golpe no dia 27/10/2020, o que levou a depositar a quantia de R$ 1.300,00 (um mil e trezentos reais) na conta poupança Ag 3641, Op. 013, Conta 12355-8, cujo titular Sabrina dos S. Ribeiro. " & #dbl#,
+							print #parag# & "Note Excelência! A parte autora afirma que foi: “ludibriada, cai em um golpe, depositei R$ 1.300,00”." & #dbl#,
+							print #parag# & "Alega que ao perceber que foi vítima de golpe, compareceu imediatamente na agência e foi informada que a conta já se encontrava bloqueada. Porém a parte autora alega que esta parte ré informou que o levantamento desse valor seria possível apenas por decisão judicial." & #dbl#,
+							print #parag# & "Sendo assim, a parte autora ajuizou a presente demanda requerendo a condenação da ré na indenização por dano moral e a determinação de emissão de Alvará Judicial que determine o levantamento dos valores bloqueados pela instituição financeira." & #dbl#,
+							print #parag# & "Dá à causa o valor de R$ 16.900,00 (dezesseis mil e novecentos reais). Contudo, razão não lhe assiste, conforme será exposto." & #dbl#
+						}
+					},
+					topic[TOP_Merito] {
+						title = bold("Mérito\b")
+						declarations {
+							topic[TOP_AusenciaDeIlegalidade] {
+								title = bold("Da Realidade dos Fatos – Ausência de Ilegalidade Praticada Pela Instituição Financeira – Exercício Regular do Direito\b")
+								operations {
+									print #parag# & "Não obstante a alegação da parte autora na inicial, cumpre esclarecer que no extrato bancário do terceiro beneficiado pelo depósito supostamente irregular (3641 013 00012355-8; Sabrina dos S. Ribeiro) não consta o valor de R$ 1.300,00 (um mil e trezentos reais) depositado em 27/01/2020." & #dbl#,
+									print #parag# & "Em 03/02/2020, a unidade 2079 – Goiana/GO acolheu a denúncia formalizada pela autora e providenciou a inclusão da conta no Sistema de Monitoramento de Golpes e Fraudes, conforme preconiza a norma interna." & #dbl#,
+									print #parag# & "Ao receber a denúncia acima identificada, esta parte ré realizou o bloqueio imediato da conta da parte autora, pois esse é o procedimento administrativo interno de praxe da Instituição Bancária quando se trata de indícios de fraude, até para resguardar terceiros envolvidos e o próprio titular da conta." & #dbl#,
+									print #parag# & "Após o recebimento da denúncia, a área de Segurança da CAIXA incluiu no Sistema de monitoramento de golpes a conta envolvida recebedora de recursos oriundos de fraude e de mesma titularidade." & #dbl#,
+									print #parag# & "No caso posto, a conduta da ré, consistente na denúncia acima informada, observou todas as cautelas necessárias para evitar prejuízos ao correntista, não configurando nenhuma abusividade." & #dbl#,
+									print #parag# & "Quando do recebimento de denúncias, as Agências prestam o atendimento inicial, orientando o cliente de que não há previsão normativa de estorno de valores ou devoluções, conforme preconiza o MN AD 228, item “4.1.6.1 esclarecendo a este que não há previsão de devolução ou ressarcimento de valores oriundos de golpe pela instituição que não seja pela via judicial.“" & #dbl#,
+									print #parag# & "Em que pese as alegações da autora ao formalizar a denúncia em 03/02/2020, esta assinou ciência de que a devolução só poderia ocorrer por via judicial, conforme consta no arquivo anexo e em destaque abaixo:" & #dbl#,
+									print #parag# & bold("Ressalta-se que, no caso em questão o valor R$ 1.300,00 questionado está registrado no Relatório de Contas a Corrigir como pendente para a conta 3641; op. 013; 00012355-8 desde 27/01/2020 e o valor ficará disponível para ressarcimento em caso de determinação judicial.") & #dbl#,
+									print #parag# & "Por outro lado, faz-se necessário salientar que, " & it("in casu") & ", o autor realizou a transferência de forma voluntária para a conta do golpista/estelionatário, sem qualquer corresponsabilidade da CAIXA, portanto, o autor deu causa ao evento danoso ao realizar créditos para terceiros." & #dbl#,
+									print #parag# & "Lembramos que conforme contrato de abertura de contas, e normas BACEN, a movimentação de valores por terceiros só pode ocorrer mediante autorização expressa do titular ou por determinação judicial. Portanto, a CAIXA adotou todas as medidas legais possíveis para o caso, sem qualquer abusividade em face da parte autora." & #dbl#,
+									print #parag# & "Ressalta-se que constitui real obrigação das instituições financeiras colaborar com o poder público para evitar o uso indevido de contas bancárias, inclusive no que concerne a prática de lavagem de dinheiro. " & #dbl#,
+									print #parag# & " O artigo 13 da Resolução 2025/93 do BACEN determina: " & #dbl#,
+									print #parag# & bold("A instituição financeira deverá encerrar conta de depósito em relação à qual verificar irregularidades nas informações prestadas, julgadas de natureza grave, comunicando o fato, de imediato, ao Banco Central do Brasil") & ". (g.n)" & #dbl#,
+									print #parag# & "No mesmo sentido, prescreve o §2º do artigo 3º da Resolução 2025/93:" & #dbl#,
+									print #parag# & "Parágrafo 2º A instituição deve adequar seus sistemas de controles internos voltados para as atividades de abertura e acompanhamento de contas de depósitos, implantados nos termos da Resolução 2.554, de 24 de setembro de 1998, com vistas a prever o monitoramento das atribuições conferidas na forma do parágrafo 1º, bem como adotar políticas e procedimentos, incluindo regras rígidas do tipo “conheça seu cliente“, que previnam a utilização das respectivas instituições, intencionalmente ou não, para fins de práticas ilícitas ou fraudulentas. (Redação dada pela Resolução nº 2.953, de 25/4/2002)" & #dbl#,
+									print #parag# & "Cumpre destacar que a devolução de valores depositados em conta de terceiros mediante fraude deve ser realizada somente por determinação judicial, sendo esta a prática legal adotada pelos bancos, por medida de segurança, a fim de proteger o próprio correntista, bem como evitar maiores prejuízos, agindo no exercício regular de direito." & #dbl#,
+									print #parag# & "Na dicção de Nelson Nery Júnior e Rosa Maria de Andrade Nery, exercício regular de direito “" & it(bold("é a utilização do direito sem invadir a esfera do direito de outrem. É não prejudicar o direito de outrem, independentemente de causar dano. Só exerce regularmente seu direito aquele que não prejudica direito de outrem")) & "“." & #dbl#,
+									print #parag# & "Deflui-se do cotejo do conjunto probatório que a conduta da CAIXA configura regular exercício do direito de acesso à jurisdição (CF, art. 5º, XXXV), sem qualquer invasão à esfera de direito da ré" & #dbl#,
+									print #parag# & "Portanto, não merece guarida as alegações da parte autora, haja vista que a conduta administrativa do banco está respaldada pelo regular exercício de seu direito e o valor ficará disponível para ressarcimento em caso de determinação judicial." & #dbl#
+								}
+							},
+							topic[TOP_CulpaExclusivaDaVitima] {
+								title = bold(" Da Inexistência de Responsabilidade Civil pela Culpa Exclusiva da Vítima e Fato de Terceiro\b") 
+								operations {
+									print #parag# & "Insta salientar ser flagrante a culpa exclusiva da vítima, somada ao fato de terceiro, ambas excludentes do nexo de causalidade entre o dano e a conduta, sendo impossível a responsabilização da parte ré, nos termos do Artigo 14, §3º, II do CDC, como segue:" & #dbl#,
+									print #parag# & "CDC - Art. 14. (...)." & #dbl#,
+									print #parag# & "§ 3° O fornecedor de serviços só não será responsabilizado quando provar:" & #dbl#,
+									print #parag# & "(...)" & #dbl#,
+									print #parag# & bold("II - a culpa exclusiva do consumidor ou de terceiro.") & #dbl#,
+									print #parag# & "Diante das excludentes supracitadas, é notório que não há nexo de causalidade entre a conduta e o dano, que é o liame objetivo para se estabelecer a responsabilização civil, que neste caso, não há e nesse sentido, é com a máxima vênia que citamos o precedente jurisprudencial:" & #dbl#,
+									print #parag# & "APELAÇÃO CÍVEL. AÇÃO DE OBRIGAÇÃO DE FAZER. COMPRA E VENDA DE TRATOR. ANÚNCIO NA INTERNET. " & bold("TRANSFERÊNCIA DO PAGAMENTO PARA CONTA DE OUTREM. FRAUDE PRATICADA POR TERCEIRO ALHEIO AO NEGÓCIO. CULPA EXCLUSIVA DA VÍTIMA") & ". 1" & underline(". É dever do contratante cercar-se dos cuidados mínimos ao celebrar um negócio jurídico, mormente quando intermediado por pessoa estranha ao negócio e que indica como pagamento conta bancária de outrem. ") & "2. Não comprovado o conluio entre os vendedores, que também foram vítimas da fraude, e o estelionatário, inexiste ilicitude na recusa em entregar o veículo em razão da ausência do recebimento do respectivo preço. Recurso conhecido e desprovido." & #dbl#,
+									print #parag# & "(TJGO, Apelação (CPC) 5596064-51.2018.8.09.0137, Rel. Des(a). GILBERTO MARQUES FILHO, 3ª Câmara Cível, julgado em 16/09/2020, DJe  de 16/09/2020)" & #dbl#,
+									print #parag# & "Versa ainda essa lide sobre responsabilidade civil por ato supostamente ilícito da ré em não efetuar administrativamente a devolução dos valores depositados em conta de terceiros mediante fraude/golpe, que tem como condição " & it("sine qua non") & ", nos termos dos arts. 186 e 927 do Código Civil, para autorização do direito reparatório, a comprovação de três elementos fundamentais: ação ou omissão, culpa do agente e nexo de causalidade." & #dbl#,
+									print #parag# & "No caso, Excelência, não restou demonstrado no cortejo analítico dos autos que esta parte ré teria agido com omissão ou culpa. O que ocorreu no presente caso foi que, ao receber a denúncia de suposta fraude na transação bancária, é dever desta parte ré iniciar a investigação e bloquear a conta informada por medida de segurança." & #dbl#,
+									print #parag# & it("In casu") & ", conforme já narrado nos presentes autos, em 03/02/2020, a unidade 2079 – Goiana/GO acolheu a denúncia formalizada pela autora e providenciou a inclusão da conta no Sistema de Monitoramento de Golpes e Fraudes, conforme preconiza a norma interna da CAIXA." & #dbl#,
+									print #parag# & "Ora, Excelência, a Instituição Financeira ao receber a comunicação de supostos atos irregulares referentes ao depósito realizado mediante fraude/golpe tomou todas as medidas administrativas dentro dos limites legais, ficando, portanto, demonstrada a ausência de responsabilidade civil da parte ré no presente caso." & #dbl#,
+									print #parag# & "Não houve culpa, ação ou omissão da parte ré, seja pela Instituição Bancária ter agido conforme parâmetros legais, seja pela ausência de abusividade praticada pela ré. Ressalta-se que todos os procedimentos adotados por esta foram tomadas para resguardar não apenas a instituição, mas também terceiros e o próprio titular da conta." & #dbl#,
+									print #parag# & "No caso dos autos, a parte ré não verificou no extrato bancário do terceiro beneficiado pelo depósito supostamente irregular (3641 013 00012355-8; Sabrina dos S. Ribeiro) o depósito realizado em 27/01/2020 no valor de R$ 1.300,00 (um mil e trezentos reais). Ademais, a parte autora não colacionou aos autos o boletim de ocorrência, documento imprescindível para detecção do nexo causal do que fora relatado na inicial." & #dbl#,
+									print #parag# & "A propósito, os tribunais pátrios entendem que: " & #dbl#,
+									print #parag# & "APELAÇÃO CÍVEL - VARBAS SALARIAIS - FATO CONSTITUTIVO DO DIREITO - ÔNUS DA PROVA - INCUMBÊNCIA DO AUTOR - CONJUNTO PROBATÓRIO INCONSISTENTE. RECURSO A QUE SE NEGA PROVIMENTO “IN SPECIE“. " & #dbl#,
+									print #parag# & bold("A simples alegação do fato não é suficiente para comprovar a existência. A mera alegação de um fato não prescinde de sua prova para que deste possa extrair efeitos jurídicos. - Sendo do autor o ônus da prova do fato constitutivo do seu direito e dele não se desincumbindo a contento, impõe-se a improcedência do seu pedido. - Exegese do art. 333, I do CPC. ") & #dbl#,
+									print #parag# & "(TJ-MG - AC: 10394100019881001 MG, Relator: Belizário de Lacerda, Data de Julgamento: 07/01/2014, Câmaras Cíveis / 7ª CÂMARA CÍVEL, Data de Publicação: 10/01/2014). (g.n)" & #dbl#,
+									print #parag# & "Caio Mário da Silva Pereira, ao tratar da responsabilidade civil, ensina que: " & #dbl#,
+									print #parag# & "Deste conceito extraem-se os requisitos essenciais: a) em primeiro lugar, a verificação de uma conduta antijurídica, que abrange comportamento contrário ao direito, por comissão ou omissão, sem necessidade de indagar se houve ou não propósito de malfazer; b) em segundo lugar, a existência de dano, tomada a expressão no sentido de a lesão a um bem jurídico, seja este de ordem material ou imaterial, de natureza patrimonial ou não patrimonial; c) e em terceiro lugar, o estabelecimento de um nexo de causalidade entre uma e outro, de forma a precisar-se que o dano decorre da conduta antijurídica, ou, em termos negativos, que sem a verificação do comportamento contrário ao direito não teria havido o atentado a bem jurídico." & #dbl#,
+									print #parag# & "Pelo exposto, restou demonstrada a total ausência de responsabilidade civil desta parte ré pela ausência dos três elementos fundamentais necessários para a responsabilização civil de ato ilícito, quais sejam: ação ou omissão, culpa do agente e nexo de causalidade." & #dbl#,
+									print #parag# & "Não configurada a prática de ato ilícito pela CEF, é desarrazoado responsabilizá-la civilmente. A cobrança administrativa e judicial decorre do exercício regular de um direito." & #dbl#,
+									print #parag# & "Portanto, requer o reconhecimento da ausência de responsabilidade civil desta parte ré, conforme acima demonstrado." & #dbl#
+								}
+							},
+							topic[TOP_ImpossibilidadeDeReativacao] {
+								title = bold(" Dos Atos de Defesa no Procedimento Interno da Instituição Bancária – Impossibilidade de Reativação da Conta Durante a Investigação\b")
+								operations {
+									print #parag# & "É sabido que, ao receber uma denúncia de fraude em contas de seus clientes, esta parte ré inicia um processo de investigação interna no mesmo dia, o que pode ocasionar o imediato bloqueio da conta informada na denúncia por se tratar de medida de segurança, o que ocorreu no presente caso." & #dbl#,
+									print #parag# & "Ora Excelência, é cediço que procedimentos de investigação levam um certo tempo para análise. " & bold("Ademais, o bloqueio da conta em casos de fraude, ou suspeita de fraude, é necessário, e não opcional") & "." & #dbl#,
+									print #parag# & "A parte ré em momento algum agiu no intuito de maleficiar a parte autora, muito pelo contrário, agiu com bastante zelo e cuidado para que nem ela e nem terceiros saíssem prejudicados. Porém, a não devolução na via administrativa de valores depositados mediante fraude/golpe é necessário para que nenhuma das partes saia lesado sem antes de verificada o devido processo legal e direito de defesa." & #dbl#,
+									print #parag# & "Diante do exposto, após comprovação da fraude/golpe e da ilicitude dos créditos, o único meio de devolução de valores depositados em conta de terceiro só pode se dar na via judicial." & #dbl#
+								}
+							},
+							topic[TOP_DanoMoral] {
+								title = bold("Da Inexistência de Dano Moral Provocada Por Essa Parte Ré\b")
+								operations {
+									print #parag# & "Inicialmente, Excelência, cumpre reiterar, sem temer a redundância, que a parte ré não cometeu qualquer ilícito ou colaborou para que ocorresse conforme demonstrado acima." & #dbl#,
+									print #parag# & "Não existem provas da existência de qualquer dano experimentado pela parte autora que esteja vinculado à situação informada." & #dbl#,
+									print #parag# & "É importante ainda lembrar que o dano moral é aquele que afeta a personalidade e, de alguma forma, ofende a moral e a dignidade da pessoa." & #dbl#,
+									print #parag# & "O doutrinador Carlos Roberto Gonçalves, ao conceituar o dano moral assevera que:" & #dbl#,
+									print #parag# & "Dano moral é o que atinge o ofendido como pessoa, não lesando seu patrimônio. É lesão de bem que integra os direitos da personalidade, como a honra, a dignidade, intimidade, a imagem, o bom nome, etc., como se infere dos art. 1º, III, e 5º, V e X, da Constituição Federal, e que acarreta ao lesado dor, sofrimento, tristeza, vexame e humilhação. (GONCALVES, 2009, p.359)." & #dbl#,
+									print #parag# & "Nestes termos, também leciona Nehemias Domingos de Melo “dano moral é toda agressão injusta aqueles bens imateriais, tanto de pessoa física quanto de pessoa jurídica, insuscetível de quantificação pecuniária”. (MELO, 2004, p. 9)." & #dbl#,
+									print #parag# & "Outra corrente conceitua dano moral como o efeito da lesão, e não a lesão em si, como é o caso do festejado doutrinador Yussef Said Cahali que assim o conceitua:" & #dbl#,
+									print #parag# & "Dano moral, portanto, é a dor resultante da violação de um bem juridicamente tutelado, sem repercussão patrimonial. Seja dor física – dor-sensação, como a denominada Carpenter – nascida de uma lesão material; seja a dor moral – dor-sentimento, de causa imaterial. (CAHALI, 2011, pag. 28)." & #dbl#,
+									print #parag# & "Veja Excelência que para que haja dano moral é preciso que tenha ocorrido algum tipo de dano. No presente caso fica claro a inexistência de qualquer dano que possa ter experimentado a parte autora, além do mais, não restou provado nenhum prejuízo sofrido pela parte autora." & #dbl#,
+									print #parag# & "O magistrado para conceder reparação por dano moral deve estar convencido da efetiva ofensa à dignidade - consubstanciada na violação às integridades física, psíquica e moral - não devendo tratar-se de mera frustração ou dissabor devido ao risco de banalização do instituto." & #dbl#,
+									print #parag# & "A ação por danos morais, como direito constitucional, deve ser resguardada daqueles que a utilizam de modo incoerente, seja por absoluta impropriedade do expediente, seja para enriquecer gananciosos em detrimento de alguma instituição ou pessoa, pois o Judiciário não pode ser utilizado como instrumento de vingança ou investimento." & #dbl#,
+									print #parag# & "Na realidade, os mais triviais aborrecimentos do dia a dia estão sendo hoje equiparados a um sofrimento qualificado como insuportável resultado de forte dor moral. Chega-se a poder afirmar que qualquer contrariedade, mesmo que corriqueira, é para alguns, taxada de dano moral infinito, visando unicamente o recebimento da indenização. Calha citar decisões que negam a existência de dano moral por mero aborrecimento." & #dbl#,
+									print #parag# & "Cumpre citar muitas são as jurisprudências que seguem o entendimento de que, para se pleitear a reparação do dano moral, é necessário que de se demonstre cabalmente as consequências do fato danoso na integridade psíquica da vítima." & #dbl#,
+									print #parag# & "Por todo exposto Excelência, percebe-se que, para a configuração do dano moral, há a necessidade de lesão à um dos direitos da personalidade, tais como a honra, a dignidade, a intimidade ou a imagem, o que, " & it("data venia") & ", não há no presente caso, visto que sequer existiu desrespeito a parte autora." & #dbl#
+								}
+							},
+							topic[TOP_BanalizacaoDoInstituto] {
+								title = bold("Sobre a Banalização do Instituto\b")
+								operations {
+									print #parag# & "Em consonância ao que foi exposto anteriormente, o tema concernente à reparação por dano moral puro sofreu considerável evolução, demorando árduos longos anos para ser efetivamente inserido no ordenamento jurídico pátrio." & #dbl#,
+									print #parag# & "Não obstante, agora que reconhecido, o instituto transformou-se em objeto de inúmeras ações que abarrotam nosso Poder Judiciário, muitas delas absolutamente descabidas, revelando o intento pernicioso dos autores dessas demandas, que visam pretensões absurdas." & #dbl#,
+									print #parag# & "Um exemplo de despropósito, está nesta demanda, no qual a parte autora, mesmo sem motivos, valendo-se do seu direito constitucional de ação, se vê no direito de postular uma indenização por danos morais no valor de R$ 15.600,00 (quinze mil e seiscentos reais). É um verdadeiro disparate." & #dbl#,
+									print #parag# & "Ora, defendemos, sim, a ampla tutela à moral e à imagem. Contudo, o pedido indenizatório deve ser pautado por uma pretensão justificada, marcada pela razoabilidade e conveniência. Se assim não for, imperiosa a submissão do autor da demanda judicial aos efeitos da litigância de má-fé, além, e claro, da total improcedência do pedido." & #dbl#,
+									print #parag# & "No presente caso, não há cobrança indevida provada, poderia ter então algum Dano Moral sofrido pela parte autora? Se não há ato ilícito ou dano algum causado por esta parte ré a parte autora conforme demonstrado?" & #dbl#,
+									print #parag# & "Mesmo que fundamentada a pretensão da parte autora pela reparação moral, por certo que procedentes serão as ações, mas que ao menos seja a indenização fixada na medida do agravo sofrido, mas sob hipótese alguma em valores exorbitantes." & #dbl#,
+									print #parag# & "Justamente por essas razões, nossos tribunais têm se mostrado rígidos na fixação da verba reparatória, inclusive como instrumento de preservação do instituto, impedindo que absurdas indenizações subvertam o causador do dano à condição de nova vítima ao ter de suportar uma reparação demasiada e desproporcional à ofensa." & #dbl#,
+									print #parag# & "A Jurisprudência vem coibindo com êxito o locupletamento indevido do ofendido, limitando a verba reparatória a valores adequados e condizentes com a realidade atual, máxime porque a vítima deve encontrar na reparação um meio de satisfação do dano moral experimentado, e não uma caderneta de aposentadoria ou um bilhete de loteria premiado." & #dbl#,
+									print #parag# & "Com efeito. Convém dizer que nem todo mal-estar configura dano moral, no sentido de que “seria reduzir o dano moral a mera sugestibilidade, ou proteger alguém que não suporta nenhum aborrecimento trivial, o entendimento que o dano moral atinge qualquer gesto que causa mal-estar”." & #dbl#,
+									print #parag# & "O mero incômodo, o desconforto, o enfado decorrente de alguma circunstância em que o homem médio tem de suportar em razão de viver em sociedade, não servem para que sejam concedidas indenizações." & #dbl#,
+									print #parag# & "Vale ressaltar que a reparação por dano moral há que ser arbitrada dentro da razoabilidade, haja vista que não tem o condão de propiciar enriquecimento ilícito de quem postula, prática repelida pelo sistema jurídico." & #dbl#
+								}
+							},
+							topic[TOP_QuantumIndenizatorio] {
+								title = bold("Do ") & it(bold("Quantum")) & bold(" Indenizatório\b")
+								operations {
+									print #parag# & "É indubitável que, ante a ausência de previsão legal expressa, regular um montante justo e equitativo para satisfação decorrente de dano moral puro constitui árdua função a ser exercida pela atividade jurisdicional." & #dbl#,
+									print #parag# & "Isto porque o prejuízo moral é incomensurável monetariamente, haja vista que a diminuição extrapatrimonial e a indenização em pecúnia possuem naturezas díspares." & #dbl#,
+									print #parag# & "Para tanto Excelência, deve-se analisar o nível de subversão ocasionada à moral da vítima pelo ato ilícito do ofensor, atendo-se ao escalão de abuso e de arbitrariedade que revestiram a conduta do causador do prejuízo, focando e auferindo seu grau de culpa." & #dbl#,
+									print #parag# & "Há que ser considerada também a gravidade do prejuízo experimentado pelo ofendido, cuja constatação divide-se na avaliação da intensidade e duração do dano ocasionado, ou seja, deve-se auferir a repercussão e a proporção do dano, considerando o tempo pelo qual perdurou o ataque à honra da vítima." & #dbl#,
+									print #parag# & "Noutros termos, caberá a Vossa Excelência o mister de ponderar a intensidade e duração com que foram menoscabados os atributos extrapatrimoniais do ofendido, " & bold("caso eles tenham de fato ocorrido.") & #dbl#,
+									print #parag# & "Ademais Excelência é oportuno verificar que o valor requerido pela parte autora, valor de R$ 15.600,00 (quinze mil e seiscentos reais) não se mostra ao mínimo razoável, pois se reveste de pretensa má fé, com o único intuito de enriquecer-se sem justo motivo, devendo ao Douto Magistrado coibir práticas abusivas com fulcro em infundados pleitos." & #dbl#
+								}
+							},
+							topic[TOP_AusenciaDeIncontestabilidade] {
+								title = bold("Impugnação – Documento Acostado pelo Autor – Ausência de Incontestabilidade\b")
+								operations {
+									print #parag# & "Os documentos juntados pela parte autora são em cópia simples e, por não assegurarem sua autenticidade, devem ser retirados do processo, conforme o disposto no Art. 425, IV do CPC." & #dbl#
+								}
+							}
+						}
+						operations {
+							print #parag# & "Embora não se admita a superação da preliminar suscitada, é necessário, pelos princípios da eventualidade e da concentração, adentrar ao mérito, segundo os fundamentos a seguir." & #dbl#,
+							use TOP_AusenciaDeIlegalidade,
+							use TOP_CulpaExclusivaDaVitima,
+							use TOP_ImpossibilidadeDeReativacao,
+							use TOP_DanoMoral, 
+							use TOP_BanalizacaoDoInstituto,
+							use TOP_QuantumIndenizatorio,
+							use TOP_AusenciaDeIncontestabilidade
+
+						}
+					},
+					topic[TOP_Pedidos] {
+						title = bold("Pedido\b")
+						operations {
+							print #parag# & "Ante o exposto requer que" & #dbl#,
+							print #parag# & "4.1 seja acolhida a preliminar suscitada de inépcia da inicial em face da ausência de documento imprescindível para a propositura da demanda, extinguindo-se o feito sem resolução do mérito, nos termos dos artigos 320, 321 c/c 434 e 485, inciso I do CPC." & #dbl#,
+							print #parag# & "4.2 seja acolhida a preliminar suscitada de quebra de sigilo bancário para apresentação de provas;" & #dbl#,
+							print #parag# & "4.3 sejam julgados improcedentes os pedidos iniciais, seja pela ausência de responsabilidade civil da parte ré, seja pela impossibilidade de devolução na via administrativa do valor depositado mediante fraude/golpe em conta de terceiro, bem como os pedidos de indenização por dano moral em face da ausência de prejuízos a parte autora, conforme razões expostas;" & #dbl#,
+							print #parag# & "4.4 seja deferida a produção de todos os meios de provas admitidos em direito;" & #dbl#,
+							print #parag# & "4.5 seja determinado o desentranhamento dos documentos juntados pela parte autora em cópia simples;" & #dbl#,
+							print #parag# & "4.6 as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal. " & #dbl#,
+							print #parag# & "4.7 finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #dbl#,
+							print #parag# & "4.7.1 Procuração;
+							4.7.2 Substablecimento." & #dbl#
+						}
+					}
+				}
+				operations {
+					use TOP_Preliminares,
+					use TOP_BreveHistorico,
+					use TOP_Merito,
+					use TOP_Pedidos
+				}
+			},
+			branch[BRC_Encerramento] {
+				declarations {
+					-|advogadoQueAssina| : Vector[String] {
+						name = "Advogados que assinam a peça"
+					}
+				}
+				operations {
+					foreach(<advogado> IN |strEncerramento.listaDeAdvogados|) {
+						|advogadoQueAssina|.add(<advogado>.getByKey("Nome") & "\b" & <advogado>.getByKey("OAB"))
+					},
+					print #parag# &align("Termos em que, pede deferimento.", "center") & #bl#,
+					print #parag# & align(firstUpper(<strEncerramento.localAssinatura>) & "/" & <strEncerramento.estado>.getByKey("Sigla") & ", " & expandedDate(<strEncerramento.dataPeticao>) & ".", "center") & #bl#,
+
+					print "<table class='advsAssinam'>",
+					foreach(<i> IN [0:|advogadoQueAssina|.size() - 1]) {
+						if (<i>%2 == 1) { 
+							print "<tr>",
+								print "<td style='text-align:left'>" & <advogadoQueAssina{<i> - 1}> & "\b\b" & "</td>",
+								print "<td style='text-align:right'>" & <advogadoQueAssina{<i>}>  & "\b\b" & "</td>",
+							print "</tr>"
+						}
+						elseif (<i> == |advogadoQueAssina|.size() - 1) {
+							print "<tr>",
+								print "<td style='text-align:center' colspan='2'>" & <advogadoQueAssina{<i>}> & "</td>",
+							print "</tr>"
+						} 
+					},
+					print "</table>"
+				}
+			}
+ 		}
+		operations {
+			use BRC_Estilo,
+			use BRC_Enderecamento,
+			use BRC_Qualificacao,
+			use BRC_Fraude_FgtsAuxEmergencial,
+			use BRC_Fraude_CulpaExclusivaFatoDeTerceiro,
+			use BRC_Encerramento
+		}
+ 	}
+}
