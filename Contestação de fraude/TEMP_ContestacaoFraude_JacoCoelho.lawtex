@@ -23,7 +23,7 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 			+<strModelo> : Struct {
 				name = "Modelo"
 				fields {
-					+[modelo] : List ("Revisional imobiliária", "Revisional veículo") {
+					+[modelo] : List ("Fraude FGTS e auxílio emergencial", "Fraude culpa exclusiva e fato de terceiro") {
 						name = "Modelo"
 						request = "Selecione o modelo da defesa"
 						atomic = true
@@ -126,18 +126,17 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 			+<strDocumentos> : Struct {
 				name = "Documentos"
 				fields {
-					+[documentos] : List ("Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento", "Planilha de evolução do contrato") {
+					+[documentos] : List ("Procuração", "Substabelecimento", "Outros") {
 						name = "Documentos"
 						request = "Selecione os documentos que deseja juntar"
 						atomic = false
 					},
-					-|recebeDocs| : Vector[String]
-				}
-				loaders {
-					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
-						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento"} 
-					} else {
-						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Planilha de evolução do contrato"}
+					if("Outros" IN [documentos]) {
+						+|vectOutrosDocs| : Vector[String] {
+							name = "Outros documentos"
+							request = "Informe o nome do documento que deseja juntar ao processo"
+							help = "Cada item corresponde a um documento"
+						}
 					}
 				}
 			},
@@ -592,5 +591,38 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 			use BRC_Fraude_CulpaExclusivaFatoDeTerceiro,
 			use BRC_Encerramento
 		}
+ 	}
+ 	foot {
+ 		declarations {
+ 			branch[TOC_InformacoesGerais] {
+				name = "Informações gerais"
+				index = true
+				operations {
+					<strModelo>.ask(),
+					<strDadosDoProcesso>.ask()
+				}	
+			},
+			branch[TOC_Partes] {
+				name = "Partes"
+				index = true
+				operations {
+					|vectAutor|.ask()
+					//|vectReu|.ask()
+				}	
+			},
+			branch[TOC_Encerramento] {
+				name = "Encerramento"
+				index = true
+				operations {
+					<strDocumentos>.ask(),
+					<strEncerramento>.ask()
+				}	
+			}
+ 		}
+ 		operations {
+ 			use TOC_InformacoesGerais,
+ 			use TOC_Partes,
+ 			use TOC_Encerramento
+ 		}
  	}
 }
