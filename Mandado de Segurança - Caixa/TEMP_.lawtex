@@ -1,0 +1,17 @@
+template[TEMP_TemplateAlias] { 
+	metainfo { 
+		language = "pt_BR"
+		name = "..."
+		declarations {
+			...
+		} 
+	} 
+	head { 
+		title = "..." 
+ 	} 
+ 	body {
+		operations {
+			...
+		}
+ 	}
+}
