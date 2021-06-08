@@ -36,12 +36,13 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 					+[numero] : String where ("\d\d\d\d\d\d\d-\d\d.\d\d\d\d.\d.\d\d.\d\d\d\d") {
 						name = "Número do processo"
 					},
-					+[ehVaraOuJuizado] : List ("Juizado especial federal", "Vara federal") {
-						name = "A ação foi proposta em vara federal ou juizado especial federal?"
-						atomic = true
+					+[nomeDaVara] : String {
+						name = "Nome da vara"
+						request = "Informe o nome da vara. Veja o help para mais informações"
+						help = "Exemplo: Juizado Especial Federal Cível e Criminal"
 					},
 					&[vara] : Integer where ("\d\r") {
-						name = "Vara"
+						name = "Número da vara"
 					},
 					+[comarca] : String {
 						name = "Comarca"
@@ -49,6 +50,10 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 					+[uf] : List [*Uf] {
 						name = "Estado de tramitação"
 						atomic = true
+					},
+					+[nomeDaAcao] : String {
+						name = "Nome da ação"
+						help = "Exemplo: Ação de indenização por danos morais e materiais"
 					}
 				}
 			},
@@ -82,47 +87,136 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 					}
 				}
 			},
-			/*+|vectReu| : Vector[Struct] {
-				name = "Réu"
+			+<strPreliminares> : Struct {
+				name = "Preliminar"
 				fields {
-					+[nome] : String {
-						name = "Nome"
-						request = "Informe o nome do réu"
+					+[inepcia] : Boolean {
+						name = "Inépcia"
+						request = "Deseja incluir a preliminar requerendo a inépcia da petição inicial por ausência de documentos?"
 					},
-					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
-						name = "Tipo de pessoa"
-						request = "Selecione o tipo de pessoa"
-						atomic = true
-						default = "Pessoa Jurídica"
-					},
-					if([tipoPessoa] == "Pessoa Jurídica") {
-						+[cnpj] : String where ("CNPJ") {
-							name = "CNPJ"
-							request = "Informe o CNPJ do réu"
-						}
-					} else {
-						+[cpf] : String where ("CPF") {
-							name = "CPF"
-							request = "Informe o CPF do réu"
+					if([inepcia]) {
+						+[motivoDaAcao] : Text {
+							name = "Motivo da ação"
+							request = "Descreva o motivo do ajuizamento da ação"
+							default = "No caso dos autos, trata-se de pedido de indenização dano moral por suposto abuso da ré ao não realizar a devolução do valor depositado pela autora na conta de terceiro mediante suposto golpe, fazendo necessária, portanto, a juntado do boletim de ocorrência para comprovação do suposto alegado."
 						}
 					},
-					-[genero] : List ("Feminino", "Masculino") {
-						name = "Gênero"
-						request = "Selecione o gênero do réu"
-						help = "É necessário informar o gênero para que as flexões sejam feitas corretamente"
-						atomic = true 
+					+[quebraDeSigilo] : Boolean {
+						name = "Quebra de sigilo bancário"
+						request = "Deseja incluir a preliminar requerendo a quebra de sigilo bancário?"
+					},
+					if([quebraDeSigilo]) {
+						+[mesDeposito] : List ("Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro") {
+							name = "Mês do depósito"
+							request = "Informe o mês no qual foi realizado o depósito"
+							atomic = true
+						},
+						+[anoDeposito] : String where ("\d\r") {
+							name = "Ano do depósito"
+							request = "Informe o ano no qual foi realizado o depósito"
+						}
 					}
 				}
-				loaders {
-					[nome].default = "Caixa Econômica Federal",
-					if([tipoPessoa] == "Pessoa Jurídica") {
-						[genero].default = "Feminino",
-						[cnpj].default = "00.360.305/0001-04"
+			},
+			+<strBreveHistorico> : Struct {
+				name = "Breve histórico"
+				fields {
+					+[dataDoGolpe] : Date {
+						name = "Data do golpe"
+						request = "Informe a data do golpe"
+					},
+					+[valorDoDeposito] : Currency {
+						name = "Valor do depósito"
+						request = "Informe o valor depositado pelo autor"
+					},
+					+[valorDaCausa] : Currency {
+						name = "Valor da causa"
+						request = "Informe o valor da causa"
+					},
+					+[strDadosBancarios] : Struct {
+						name = "Dados bancários"
+						request = "Informe os dados da conta na qual o depósito foi realizado"
+						fields {
+							+[tipoDeConta] : List ("Conta corrente", "Conta poupança") {
+								name = "Tipo de conta"
+								request = "Informe o tipo de conta"
+								atomic = true
+							},
+							+[agencia] : String where ("\d\d\d\d") {
+								name = "Agência"
+								request = "Informe a agência"
+							},
+							+[conta] : String {
+								name = "Conta"
+								request = "Informe a conta"
+							},
+							+[operacao] : String {
+								name = "Operação"
+								request = "Informe o código de operação"
+							}	
+						}
+					} 
+				}
+			},
+			+<strMerito> : Struct {
+				name = "Mérito"
+				fields {
+					+[danoMoral] : Boolean {
+						name = "Dano moral"
+						request = "O autor pediu danos morais?"
+					},
+					if([danoMoral]) {
+						+[valorDanosMorais] : Currency {
+							name = "Valor dos danos morais"
+							request = "Informe o valor dos danos morais"	
+						}
+					},
+					if([Metainfo:strModelo.modelo] == "Fraude culpa exclusiva e fato de terceiro") {
+						+[dataDaDenuncia] : Date {
+							name = "Data da denúncia"
+							request = "Informe a data da denúncia"
+						},
+						+[unidade] : String where ("\d\r") {
+							name = "Unidade"
+							request = "Informe a unidade"
+						},
+						+[cidadeDenuncia] : String {
+							name = "Cidade"
+							request = "Informe a cidade onde foi realizada a denúncia"
+						},
+						+[ufDenuncia] : List [*Uf] {
+							name = "Estado"
+							request = "Informe o estado onde foi realizada a denúncia"
+							atomic = true
+						},
+						+[temBO] : Boolean {
+							name = "Boletim de ocorrência"
+							request = "O autor juntou boletim de ocorrência aos autos?"
+						},
+						+[ehCopiaSimples] : Boolean {
+							name = "Documentos juntados"
+							request = "Os documentos juntados pelo autor são em cópia simples?"
+						}
 					} else {
-						[genero].mandatory = "+"
+						+[dataUtilização] : Date {
+							name = "Data da utilização do valor"
+							request = "Informe a data em que o valor foi utilizado"
+						},
+						+[valorDisponibilizado] : Currency {
+							name = "Valor disponibilizado"
+							request = "Informe o valor disponibilizado"
+						},
+						+[conciliacao] : Boolean {
+							name = "Conciliação"
+							request = "A ré possui interesse na realização de audiência de conciliação?"
+						},
+						+[causaEhFgts] : Boolean {
+							name = "Causa de pedir"
+							request = "A causa de pedir versa sobre FGTS?"
+						}
 					}
-				}
-			},*/
+				}	 
+			},
 			+<strDocumentos> : Struct {
 				name = "Documentos"
 				fields {
@@ -607,7 +701,16 @@ template[TEMP_ContestacaoFraude_JacoCoelho] {
 				index = true
 				operations {
 					|vectAutor|.ask()
-					//|vectReu|.ask()
+				}	
+			},
+			branch[TOC_InformacoesDefesa] {
+				name = "Informações da Defesa"
+				index = true
+				operations {
+					<strPreliminares>.ask(),
+					if(<strModelo.modelo> == "Fraude culpa exclusiva e fato de terceiro") {
+						<strBreveHistorico>.ask()
+					}
 				}	
 			},
 			branch[TOC_Encerramento] {
