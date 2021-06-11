@@ -7,7 +7,6 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			//Constantes
 			-#parag# : String {value = "<p class = 'paragrafo'>"},
 			-#bl# : String {value = "</p>\b\b"},
-			-<contTopic> : Integer {default = 1},
 			//Listas
 			list[ListaAdvogados_JacoCoelho] {
 				fields = {"Nome", "OAB"}
@@ -27,6 +26,10 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						name = "Modelo"
 						request = "Selecione o modelo da defesa"
 						atomic = true
+					},
+					+[idPasta] : String {
+						name = "Id da pasta"
+						request = "Informe o número do id da pasta"
 					}
 				}
 			},
@@ -36,19 +39,41 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					+[numero] : String where ("\d\d\d\d\d\d\d-\d\d.\d\d\d\d.\d.\d\d.\d\d\d\d") {
 						name = "Número do processo"
 					},
-					+[ehVaraOuJuizado] : List ("Juizado especial federal", "Vara federal") {
-						name = "A ação foi proposta em vara federal ou juizado especial federal?"
+					+[ehVaraJuizadoJc] : List ("Juizado especial federal", "Vara federal", "Justiça comum") {
+						name = "Selecione o juízo onde a ação foi proposta"
 						atomic = true
 					},
-					&[vara] : Integer where ("\d\r") {
-						name = "Vara"
+					&[nomeDoJuizo] : String {
+						name = "Nome do juízo"
+						request = "Informe o nome do juízo (se houver). Veja o help para mais informações"
+						help = "Exemplo: Cível e Criminal"
 					},
-					+[comarca] : String {
-						name = "Comarca"
+					&[vara] : Integer where ("\d\r") {
+						name = "Número da vara (se houver)"
+					},
+					+[ehComarcaOuSj] : List ("Comarca", "Seção judiciária") {
+						name = "Selecione se deseja informar a comarca ou a seção judiciária onde tramita a ação"
+						atomic = true 
+					},
+					if([ehComarcaOuSj] == "Comarca") {
+						+[comarca] : String {
+							name = "Comarca"
+						}	
 					},
 					+[uf] : List [*Uf] {
 						name = "Estado de tramitação"
 						atomic = true
+						default = "Goiás"
+					},
+					+[generoJuiz] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						request = "Selecione o gênero do juiz"
+						help = "É necessário selecionar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+					},
+					+[nomeDaAcao] : String {
+						name = "Nome da ação"
+						help = "Exemplo: Ação de indenização por danos morais e materiais"
 					}
 				}
 			},
@@ -82,66 +107,54 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					}
 				}
 			},
-			/*+|vectReu| : Vector[Struct] {
-				name = "Réu"
-				fields {
-					+[nome] : String {
-						name = "Nome"
-						request = "Informe o nome do réu"
-					},
-					+[tipoPessoa] : List ("Pessoa Física", "Pessoa Jurídica") {
-						name = "Tipo de pessoa"
-						request = "Selecione o tipo de pessoa"
-						atomic = true
-						default = "Pessoa Jurídica"
-					},
-					if([tipoPessoa] == "Pessoa Jurídica") {
-						+[cnpj] : String where ("CNPJ") {
-							name = "CNPJ"
-							request = "Informe o CNPJ do réu"
-						}
-					} else {
-						+[cpf] : String where ("CPF") {
-							name = "CPF"
-							request = "Informe o CPF do réu"
-						}
-					},
-					-[genero] : List ("Feminino", "Masculino") {
-						name = "Gênero"
-						request = "Selecione o gênero do réu"
-						help = "É necessário informar o gênero para que as flexões sejam feitas corretamente"
-						atomic = true 
-					}
-				}
-				loaders {
-					[nome].default = "Caixa Econômica Federal",
-					if([tipoPessoa] == "Pessoa Jurídica") {
-						[genero].default = "Feminino",
-						[cnpj].default = "00.360.305/0001-04"
-					} else {
-						[genero].mandatory = "+"
-					}
-				}
-			},*/
 			+<strPreliminares> : Struct {
 				name = "Preliminares"
 				fields {
-					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
+					+[desejaAlegarPreliminares] : Boolean {
+						name = "Deseja alegar preliminares?"
+					},
+					if([desejaAlegarPreliminares]) {
+						+[inepciaAusenciaDocs] : Boolean {
+							name = "Inépcia"
+							request = "Deseja incluir a preliminar requerendo a inépcia da petição inicial por ausência de documentos?"
+						},
+						if([inepciaAusenciaDocs]) {
+							+[motivoDaAcao] : Text {
+								name = "Motivo da ação"
+								request = "Descreva o motivo do ajuizamento da ação"
+								default = "fazendo necessária, portanto, a juntado do boletim de ocorrência para comprovação do suposto alegado."
+								help = "Este trecho será incluído no final do segundo parágrafo do tópico que trata da inépcia da inicial"
+							}
+						},
+						+[quebraDeSigilo] : Boolean {
+							name = "Quebra de sigilo bancário"
+							request = "Deseja incluir a preliminar requerendo a quebra de sigilo bancário?"
+						},
+						if([quebraDeSigilo]) {
+							+[mesDeposito] : List ("Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro") {
+								name = "Mês do depósito"
+								request = "Informe o mês no qual foi realizado o depósito"
+								atomic = true
+							},
+							+[anoDeposito] : String where ("\d\r") {
+								name = "Ano do depósito"
+								request = "Informe o ano no qual foi realizado o depósito"
+							}
+						},
 						+[alegaJG] : Boolean {
 							name = "Justiça gratuita"
-							request = "O autor requereu justiça gratuita?"
+							request = "A parte autora requereu justiça gratuita?"
 						},
 						if([alegaJG]) {
 							+[juntouDeclaracao] : Boolean {
 								name = "Declaração de hipossuficiência"
-								request = "O autor juntou declaração de hipossuficiência?"
+								request = "A parte autora juntou declaração de hipossuficiência?"
 							},
 							+[temAdvParticular] : Boolean {
 								name = "Declaração de hipossuficiência"
-								request = "O autor está representado por advogado particular?"
+								request = "A parte autora está representado por advogado particular?"
 							}
-						}
-					} else {
+						},
 						+[valoresIncontroversos] : Boolean {
 							name = "Depósito de valores incontroversos"
 							request = "Houve alegação de depósito de valores incontroversos?"
@@ -335,18 +348,17 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			+<strDocumentos> : Struct {
 				name = "Documentos"
 				fields {
-					+[documentos] : List ("Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento", "Planilha de evolução do contrato") {
+					+[documentos] : List ("Procuração", "Substabelecimento", "Outros") {
 						name = "Documentos"
 						request = "Selecione os documentos que deseja juntar"
 						atomic = false
 					},
-					-|recebeDocs| : Vector[String]
-				}
-				loaders {
-					if([Metainfo:strModelo.modelo] == "Revisional imobiliária") {
-						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Ficha de cadastro da parte autora e protocolo de entrega da planilha", "Planilha de evolução das parcelas", "Planilha de evolução do débito, resumo do débito e atraso no pagamento"} 
-					} else {
-						[documentos].options = {"Procuração", "Substabelecimento", "Contrato", "Planilha de evolução do contrato"}
+					if("Outros" IN [documentos]) {
+						+|vectOutrosDocs| : Vector[String] {
+							name = "Outros documentos"
+							request = "Informe o nome do documento que deseja juntar ao processo"
+							help = "Cada item corresponde a um documento"
+						}
 					}
 				}
 			},
@@ -381,7 +393,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 		operations {
 			header("logo_jacoCoelho.png", "center", "70%"),
 			footer("foot_jacoCoelho.png", "center","155mm"),
-			setDocumentName("Contestação em Ação Revisional - " & <strDadosDoProcesso.numero>)
+			setDocumentName("Contestação em Ação Revisional - ID da pasta: " & <strModelo.idPasta>)
 		} 
  	} 
  	body {
@@ -391,8 +403,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					branch[CSS_Titulo] {
 						operations {
 							print "<style>
-								a, h1, h2, h3, h4 {
-									text-align: justify;
+								h1, h2, h3, h4 {
+									text-align: center;
 									margin: 0pt;
 									padding: 0pt
 								}
@@ -477,77 +489,101 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			},
  			branch[BRC_Enderecamento] {
 				operations {
-					print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial federal", printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal ")) & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"),
-					print #bl#,
-					print #bl#,
-					print #bl#,
+					if(<strDadosDoProcesso.ehVaraJuizadoJc> == "Juizado especial federal") {
+						print bold(align(<strDadosDoProcesso.generoJuiz>.grammar("Excelentíssimo Senhor Doutor Juiz de Direito") & " " & printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal ") & firstUpper(<strDadosDoProcesso.nomeDoJuizo>) & " da " & printIf(<strDadosDoProcesso.ehComarcaOuSj> == "Comarca", "Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & ".", "SJ" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"))
+					},
+					if(<strDadosDoProcesso.ehVaraJuizadoJc> == "Vara federal") {
+						print bold(align(<strDadosDoProcesso.generoJuiz>.grammar("Excelentíssimo Senhor Doutor Juiz de Direito") & " " & printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal ") & firstUpper(<strDadosDoProcesso.nomeDoJuizo>) & " da " & printIf(<strDadosDoProcesso.ehComarcaOuSj> == "Comarca", "Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & ".", "SJ" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"))
+					},
+					if(<strDadosDoProcesso.ehVaraJuizadoJc> == "Justiça comum") {
+						print bold(align(<strDadosDoProcesso.generoJuiz>.grammar("Excelentíssimo Senhor Doutor Juiz de Direito") & " " & printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara ", "da Vara ") & firstUpper(<strDadosDoProcesso.nomeDoJuizo>) & " da " & printIf(<strDadosDoProcesso.ehComarcaOuSj> == "Comarca", "Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & ".", "SJ" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center"))
+					},
+					print #dbl#,
+					print #dbl#,
+					print fontSize("ID da pasta: " & <strModelo.idPasta>, "6pt"),
+					print #dbl#,
 					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
 					print "Parte Autora:\t\t" & |vectAutor|.vect2str("%f, %s, %p e %l") & "\b",
 					print "Parte Ré:\t\t\tCaixa Econômica Federal",
-					print #bl#,
-					print #bl#
+					print #dbl#,
+					print #dbl#,
+					print #dbl#
 				}
 			},
 			branch[BRC_Qualificacao] {
 				operations {
-					print #parag# & bold("Caixa Econômica Federal, ") & "Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " & printIf(<strModelo.modelo> == "Revisional imobiliária", bold("Contestação à AÇÃO REVISIONAL DE CONTRATO" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE ANTECIPAÇÃO DE TUTELA", null)), bold("Contestação à AÇÃO REVISIONAL C/C COM AÇÃO CONSIGNATÓRIA" & printIf(<strMerito.tutelaProvisoria>, " COM PEDIDO DE TUTELA DE URGÊNCIA CAUTELAR ANTECEDENTE", null))) & ", movida por " & |vectAutor|.vect2str("<b>%f</b>, <b>%s</b>, <b>%p</b> e <b>%l</b>") & ", já " & |vectAutor|.grammar("qualificado") & " na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
+					print #parag# & bold("Caixa Econômica Federal, ") & "Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " &  bold(firstUpper(<strDadosDoProcesso.nomeDaAcao>)) & ", movida por " & |vectAutor|.vect2str("<b>%f</b>, <b>%s</b>, <b>%p</b> e <b>%l</b>") & ", já " & |vectAutor|.grammar("qualificado") & " na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
 				}
 			},
-			branch[BRC_Preliminares] {
+			topic[TOP_Preliminares] {
+				title = bold("Preliminarmente\b")
 				declarations {
-					-<cont> : Integer {default = 1},
 					-<refAREsp372220> : String {
 						default = fontSize(fontFamily("(AgRg no AREsp n. 372.220/RJ, Relator Ministro Ricardo Villas Bôas Cueva, Terceira Turma, julgado em 3/4/2014, DJe 15/4/2014).", "Arial"), "8pt")
 					},
-					branch[BRC_ImpugnacaoJusticaGratuita] {
+					topic[TOP_AusenciaDeDocs] {
+						title = bold("Inépcia da Inicial por Ausência de Documentos Essenciais\b")
 						operations {
-							print align(bold(<contTopic> & "." & <cont> & " Ausência de Comprovação de Insuficiência de Recursos – Impugnação ao Pedido de Assistência Judiciária"), "center") & #bl#,
-							print #parag# & |vectAutor|.grammar("A parte autora") & printIf(|vectAutor|.size() > 1, " insurgem", " insurge") & " com a presente demanda alegando que não " & printIf(|vectAutor|.size() > 1, "possuem", "possui") & " condições financeiras para realizar o pagamento das custas processuais. Contudo, apenas " & printIf(|vectAutor|.size() > 1, "alegam", "alega") & " não ter capacidade de suportar as custas e despesas processuais, sem comprovar insuficiência de recursos para tal, nos termos do art. 98, CPC." & #bl#,
-							print #parag# & "É consabido que a declaração de pobreza gera presunção relativa acerca da necessidade da assistência gratuita, ou seja, " & it("juris tantum") & footNote(<refAREsp372220>) & ", podendo o Julgador verificar outros elementos constantes do processo para decidir acerca do deferimento ou não do benefício, uma vez que pode decorrer dos autos a demonstração de que a parte tem condições de arcar com as despesas processuais, o que impediria a concessão deste pedido." & #bl#,
-							if(<strPreliminares.juntouDeclaracao> == false) {
-								print #parag# & "No caso em apreço, " & |vectAutor|.grammar("a parte autora") & printIf(|vectAutor|.size() > 1, " sequer juntaram", " sequer juntou") & " em sua inicial a declaração de pobreza assinada por "  & |vectAutor|.grammar("ela") & ", ou seja, não há nenhum motivo que embase a Assistência Judiciária Gratuita deferida por este Juízo, sendo que não há comprovação alguma nos autos de que " & printIf(|vectAutor|.size() > 1, "as partes não podem", "a parte não pode") & " suportar o pagamento das custas processuais." & #bl#
-							},
-							print #parag# & "A comprovação desta condição de hipossuficiência se mostra imprescindível, seja para atender a dispositivo legal, seja para evitar que o Estado seja onerado indevidamente, seja ainda para coibir o ajuizamento sem medida de demandas sob manto do “grátis”." & #bl#,
-							if(<strPreliminares.temAdvParticular>) {
-								print #parag# & "Ademais, " & |vectAutor|.grammar("a parte autora") & " não " & printIf(|vectAutor|.size() > 1, "provaram", "provou") & " a realização de despesas que justificassem o deferimento do benefício pleiteado e, estando " & |vectAutor|.grammar("representada") & " por advogado particular, é necessária a demonstração da incapacidade financeira. Outrossim, em atenção ao disposto no art. 13, CPC, caso o Autor não possa suportar todas as despesas, deverá comprovar que não pode ao menos ratear os valores." & #bl#
-							},
-							print #parag# & "Diante do exposto, impugna a assistência judiciária gratuita concedida " & |vectAutor|.grammar("à parte autora") & ", requerendo " & printIf(|vectAutor|.size() > 1, "sejam intimadas", "seja intimada") & " a comprovar nos autos sua condição de hipossuficiência para pagar integral, ou parcialmente, as custas e despesas processuais." & #bl#,
-							<cont> = <cont> + 1
-						}	
-					},
-					branch[BRC_InepciaDaInicial] {
-						operations {
-							print align(bold(<contTopic> & "." & <cont> & " Da Inépcia da Inicial – Ausência de Comprovação do Depósito dos Valores Incontroversos"), "center") & #bl#,
-							print #parag# & "Preceitua o art. 330 do Novo CPC que nas ações judiciais que tenham por objeto obrigação decorrente de empréstimo, financiamento ou alienação de bens, a parte autora deverá discriminar na petição inicial as obrigações contratuais que pretende controverter, quantificando o valor incontroverso, sob pena de inépcia, o qual deve continuar sendo pago no tempo e modo contratados, e a exigibilidade do valor controvertido só poderá ser suspensa mediante depósito do montante correspondente, no tempo e modo contratados. Vejamos:" & #bl#,
-							citation("Art. 330. A petição inicial será indeferida quando:" & "\b"
- 							 & "§ 2º Nas ações que tenham por objeto a revisão de obrigação decorrente de empréstimo, de financiamento ou de alienação de bens, o autor terá de," & bold(" sob pena de inépcia") & ", discriminar na petição inicial, dentre as obrigações contratuais, aquelas que pretende controverter, além de quantificar o valor incontroverso do débito." & "\b"
- 							 & "§ 3º Na hipótese do § 2º, o valor incontroverso deverá continuar a ser pago no tempo e modo contratados."),
-							print #bl#,
-							print #parag# & "Ora Excelência, de acordo com o artigo acima e seus parágrafos 2º e 3º o valor incontroverso demonstrado na petição inicial deverá continuar a ser pago no tempo e modo contratado, o que não ocorreu no presente caso, pois não houve depósito judicial dos valores incontroversos apresentados " & |vectAutor|.grammar("pela parte autora") & ", sendo assim, a inicial deverá ser considerada inepta e extinta." & #bl#,
-							print #parag# & "De acordo com a Lei, a exigibilidade do crédito referente a financiamento só poderá ser suspensa mediante o pagamento do valor incontroverso e o depósito integral da quantia controvertida. Não " & |vectAutor|.grammar("pode a parte autora") & " simplesmente apresentar como devido um quantum apurado unilateralmente e pretender que o mesmo seja depositado judicialmente, para que o agente financeiro fique impedido de exigir a satisfação de seu crédito pelo instrumento da alienação fiduciária que legitimamente lhe outorga a Lei e as cláusulas contratuais. " & #bl#,
-							print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a extinção da presente ação sem resolução do mérito, de acordo com o artigo 330, parágrafos 2º e 3º do Novo CPC." & #bl#,
-							<cont> = <cont> + 1
+							print #parag# & "O art. 320 do CPC determina que a petição inicial deverá ser instruída com os documentos indispensáveis à propositura da ação." & #dbl#,
+							print #parag# & "No caso dos autos, trata-se de pedido de indenização dano moral por suposto abuso da ré ao não realizar a devolução do valor depositado " & |vectAutor|.grammar("pela parte autora") & " na conta de terceiro mediante suposto golpe, " & bold(firstLower(<strPreliminares.motivoDaAcao>)) & printIf(<strPreliminares.motivoDaAcao>.endsWith("."), null, ".") & #dbl#,
+							print #parag# & "Não observando tal regramento, ferir-se-á o exercício dos princípios do contraditório, da ampla defesa, violando os preceitos dos artigos 373, inciso I, e 369 do CPC." & #dbl#,
+							print #parag# & "Pelo exposto, deve ser declarada a inépcia da inicial, com a consequente extinção do feito, nos termos dos artigos 320, 321 c/c 434 e 485, inciso I, todos do CPC." & #dbl#
 						}
+					},	
+					topic[TOP_QuebraDeSigilo] {
+						title = bold("Da Necessária Quebra do Sigilo Bancário para Demonstração de Prova Documental\b")
+						operations {
+							print #parag# & "A parte ré requer autorização deste MM. Juízo para a quebra do sigilo bancário, a fim de proceder a juntada aos autos do extrato bancário " & |vectAutor|.grammar("da titular") & " da conta " & |vectAutor|.grammar("Sr.") & " " & |vectAutor|.vect2str("%f, %s, %p e %l") & " " & |vectAutor|.grammar("favorecido") & " com o depósito realizado " & |vectAutor|.grammar("pela parte autora") & ", com suas movimentações do mês de " & lowercase(<strPreliminares.mesDeposito>) & " de " & <strPreliminares.anoDeposito> & ", o qual é necessário para validar as teses defendidas por esta parte ré, uma vez que este extrato demonstrará se o valor informado " & |vectAutor|.grammar("pela parte autora") & " em sua exordial foi realmente depositado ou não." & #dbl#,
+							print #parag# & "Esclarece-se que o referido documento possui confidência resguardada pela Lei 105/2001 que rege acerca do sigilo das operações de instituições financeiras, sendo necessária, portanto, a autorização deste Douto Juízo para quebra do sigilo em relação aos mesmos e a consequente autorização para juntada nos autos. " & #dbl#,
+							print #parag# & "Portanto, requer-se o deferimento pedido de quebra de sigilo para apresentação dos extratos bancários " & |vectAutor|.grammar("da parte autora") & "." & #dbl#
+						}
+					},
+					topic[TOP_ImpugnacaoJusticaGratuita] {
+						title = bold("Ausência de Comprovação de Insuficiência de Recursos – Impugnação ao Pedido de Assistência Judiciária\b")
+						operations {
+							print #parag# & |vectAutor|.grammar("A parte autora") & printIf(|vectAutor|.size() > 1, " insurgem", " insurge") & " com a presente demanda alegando que não " & printIf(|vectAutor|.size() > 1, "possuem", "possui") & " condições financeiras para realizar o pagamento das custas processuais. Contudo, apenas " & printIf(|vectAutor|.size() > 1, "alegam", "alega") & " não ter capacidade de suportar as custas e despesas processuais, sem comprovar insuficiência de recursos para tal, nos termos do art. 98, CPC." & #dbl#,
+							print #parag# & "É consabido que a declaração de pobreza gera presunção relativa acerca da necessidade da assistência gratuita, ou seja, " & it("juris tantum") & footNote(<refAREsp372220>) & ", podendo o Julgador verificar outros elementos constantes do processo para decidir acerca do deferimento ou não do benefício, uma vez que pode decorrer dos autos a demonstração de que a parte tem condições de arcar com as despesas processuais, o que impediria a concessão deste pedido." & #dbl#,
+							if(<strPreliminares.juntouDeclaracao> == false) {
+								print #parag# & "No caso em apreço, " & |vectAutor|.grammar("a parte autora") & printIf(|vectAutor|.size() > 1, " sequer juntaram", " sequer juntou") & " em sua inicial a declaração de pobreza assinada por "  & |vectAutor|.grammar("ela") & ", ou seja, não há nenhum motivo que embase a Assistência Judiciária Gratuita deferida por este Juízo, sendo que não há comprovação alguma nos autos de que " & printIf(|vectAutor|.size() > 1, "as partes não podem", "a parte não pode") & " suportar o pagamento das custas processuais." & #dbl#
+							},
+							print #parag# & "A comprovação desta condição de hipossuficiência se mostra imprescindível, seja para atender a dispositivo legal, seja para evitar que o Estado seja onerado indevidamente, seja ainda para coibir o ajuizamento sem medida de demandas sob manto do “grátis”." & #dbl#,
+							if(<strPreliminares.temAdvParticular>) {
+								print #parag# & "Ademais, " & |vectAutor|.grammar("a parte autora") & " não " & printIf(|vectAutor|.size() > 1, "provaram", "provou") & " a realização de despesas que justificassem o deferimento do benefício pleiteado e, estando " & |vectAutor|.grammar("representada") & " por advogado particular, é necessária a demonstração da incapacidade financeira. Outrossim, em atenção ao disposto no art. 13, CPC, caso o Autor não possa suportar todas as despesas, deverá comprovar que não pode ao menos ratear os valores." & #dbl#
+							},
+							print #parag# & "Diante do exposto, impugna a assistência judiciária gratuita concedida " & |vectAutor|.grammar("à parte autora") & ", requerendo " & printIf(|vectAutor|.size() > 1, "sejam intimadas", "seja intimada") & " a comprovar nos autos sua condição de hipossuficiência para pagar integral, ou parcialmente, as custas e despesas processuais." & #dbl#
+						}
+					},
+					topic[TOP_DepositoDeValoresIncontroversos] {
+						title = bold("Da Inépcia da Inicial – Ausência de Comprovação do Depósito dos Valores Incontroversos\b")
+						operations {
+							print #parag# & "Preceitua o art. 330 do Novo CPC que nas ações judiciais que tenham por objeto obrigação decorrente de empréstimo, financiamento ou alienação de bens, a parte autora deverá discriminar na petição inicial as obrigações contratuais que pretende controverter, quantificando o valor incontroverso, sob pena de inépcia, o qual deve continuar sendo pago no tempo e modo contratados, e a exigibilidade do valor controvertido só poderá ser suspensa mediante depósito do montante correspondente, no tempo e modo contratados. Vejamos:" & #dbl#,
+							citation("Art. 330. A petição inicial será indeferida quando:" & "\b§ 2º Nas ações que tenham por objeto a revisão de obrigação decorrente de empréstimo, de financiamento ou de alienação de bens, o autor terá de," & bold(" sob pena de inépcia") & ", discriminar na petição inicial, dentre as obrigações contratuais, aquelas que pretende controverter, além de quantificar o valor incontroverso do débito." & "\b§ 3º Na hipótese do § 2º, o valor incontroverso deverá continuar a ser pago no tempo e modo contratados."),
+							print #dbl#,
+							print #parag# & "Ora Excelência, de acordo com o artigo acima e seus parágrafos 2º e 3º o valor incontroverso demonstrado na petição inicial deverá continuar a ser pago no tempo e modo contratado, o que não ocorreu no presente caso, pois não houve depósito judicial dos valores incontroversos apresentados " & |vectAutor|.grammar("pela parte autora") & ", sendo assim, a inicial deverá ser considerada inepta e extinta." & #dbl#,
+							print #parag# & "De acordo com a Lei, a exigibilidade do crédito referente a financiamento só poderá ser suspensa mediante o pagamento do valor incontroverso e o depósito integral da quantia controvertida. Não " & |vectAutor|.grammar("pode a parte autora") & " simplesmente apresentar como devido um quantum apurado unilateralmente e pretender que o mesmo seja depositado judicialmente, para que o agente financeiro fique impedido de exigir a satisfação de seu crédito pelo instrumento da alienação fiduciária que legitimamente lhe outorga a Lei e as cláusulas contratuais. " & #dbl#,
+							print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a extinção da presente ação sem resolução do mérito, de acordo com o artigo 330, parágrafos 2º e 3º do Novo CPC." & #dbl#
+						}	
 					}
 				}
 				operations {
-					print align(bold(<contTopic> & " Preliminarmente"), "center") & #bl#,
-					if(<strModelo.modelo> == "Revisional imobiliária") {
-						if(<strPreliminares.alegaJG>) {
-							use BRC_ImpugnacaoJusticaGratuita
-						}
-					} else {
-						if(<strPreliminares.valoresIncontroversos>) {
-							if(<strPreliminares.ocorreuDeposito> == false) {
-								use BRC_InepciaDaInicial
-							}
-						}
+					if(<strPreliminares.inepciaAusenciaDocs>) {
+						use TOP_AusenciaDeDocs
 					},
-					print #bl#,
-					<contTopic> = <contTopic> + 1
+					if(<strPreliminares.quebraDeSigilo>) {
+						use TOP_QuebraDeSigilo
+					},
+					if(<strPreliminares.alegaJG>) {
+						use TOP_ImpugnacaoJusticaGratuita
+					},
+					if(<strPreliminares.valoresIncontroversos>) {
+						if(<strPreliminares.ocorreuDeposito> == false) {
+							use TOP_DepositoDeValoresIncontroversos
+						}
+					}
 				}
 			},
-			branch[BRC_BreveHistorico] {
+			topic[TOP_BreveHistorico] {
+				title = bold("Breve Histórico\b")
 				declarations {
 					branch[BRC_BreveHistorico_Imobiliario] {
 						operations {
@@ -565,24 +601,21 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 					}				
 				}
 				operations {
-					print align(bold(<contTopic> & " Breve Histórico"), "center") & #bl#,
 					if(<strModelo.modelo> == "Revisional imobiliária") {
 						use BRC_BreveHistorico_Imobiliario
 					} else {
 						use BRC_BreveHistorico_Veiculo
-					},
-					print #bl#,
-					<contTopic> = <contTopic> + 1			
+					}		
 				}
 			},
-			branch[BRC_Merito] {
+			topic[TOP_Merito] {
+				title = bold("Mérito\b")
 				declarations {
-					-<cont> : Integer {default = 1},
 					branch[BRC_ClausulasContratuais_RealidadeDosFatos] {
 						declarations {
-							branch[BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario] {
+							topic[TOP_ClausulasContratuais_RealidadeDosFatos_Imobiliario] {
+								title = bold("Das Cláusulas Contratuais e Da Realidade dos Fatos\b")
 								operations {
-									print  align(bold(<contTopic> & "." & <cont> & " Das Cláusulas Contratuais e Da Realidade dos Fatos"), "center")  & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras", "Alega a parte autora") & " em sua inicial que os termos contratuais pactuados de mensalidades decrescentes do financiamento não estão sendo cumpridos por esta parte ré. Sendo assim, a parte ré vem aos autos esclarecer a este Juízo sobre os termos do contrato assinado e quais as condições pactuadas entre as partes." & #bl#,
 									print #parag# & "O contrato habitacional refere-se ao financiamento nº " & <strInfoContratuais.numeroDoContrato> & ", contratado em " & <strBreveHistorico.dataDaCelebracao> & ", cuja origem dos recursos é SBPE com prazo de amortização de 420 (quatrocentos e vinte) meses, taxa de juros de " & <strInfoContratuais.taxaDeJurosAnual> & "%a.a., e Sistema de Amortização SAC. A presente operação remontou em R$ " & <strInfoContratuais.operacao> & " (" & expandedCurrency(<strInfoContratuais.operacao>) & ") tendo como garantia de alienação fiduciária o imóvel situado à " & <strInfoContratuais.strEnderecoImovel> & ", avaliado à época em R$ " & <strInfoContratuais.avaliacao> & " (" & expandedCurrency(<strInfoContratuais.avaliacao>) & ")." & #bl#,
 									print #parag# & "No ato da contratação, a renda familiar era de R$ " & <strInfoContratuais.rendaFamiliar> & ", na seguinte composição: ",
@@ -681,13 +714,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & "O encargo mensal não será objeto de revisão em decorrência da extrapolação do limite máximo de comprometimento de renda, o qual é observado apenas no momento da contratação do financiamento." & #bl#,
 									print #parag# & bold("Ratifica-se que as cláusulas contratuais estão sendo respeitadas, que não houve capitalização composta ou juros sobre juros (anatocismo), que as parcelas foram atualizadas de acordo com o contratado bem como o recálculo do saldo devedor, que a forma utilizada para a amortização se encontra respaldada em cláusula contratual livremente pactuada.") & #bl#,
 									print #parag# & "Atualmente, o contrato encontra-se em processo de execução extrajudicial, entretanto, o imóvel garantia do presente contrato ainda não se encontra consolidado como propriedade da Caixa. Sendo assim, requer deste Douto Juízo a manutenção do processo de execução extrajudicial, tendo em vista a inadimplência da pare autora." & #bl#,
-									print #parag# & "Por tudo que foi exposto aqui, os pedidos da parte autora não merecem prosperar, devendo ser julgados improcedentes, pela ausência de vícios nos cumprimentos das cláusulas contratuais por esta parte ré. " & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Por tudo que foi exposto aqui, os pedidos da parte autora não merecem prosperar, devendo ser julgados improcedentes, pela ausência de vícios nos cumprimentos das cláusulas contratuais por esta parte ré. " & #bl#
 								}
 							},
-							branch[BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo] {
+							topic[TOP_ClausulasContratuais_RealidadeDosFatos_Veiculo] {
+								title = bold("Das Cláusulas Contratuais e Da Realidade dos Fatos\b")
 								operations {
-									print  align(bold(<contTopic> & "." & <cont> & " Das Cláusulas Contratuais e Da Realidade dos Fatos"), "center")  & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "Alegam as partes autoras ", "Alega a parte autora ") & " em sua inicial que o contrato de financiamento de veículo que entabulou com a parte ré está lotado de cláusulas abusivas e requer deste Douto Juízo a revisão do mesmo. Sendo assim, essa parte ré traz aos autos a realidade dos fatos e descreve abaixo como foi entabulado o contrato com " & |vectAutor|.grammar("a parte autora") & " e suas cláusulas legais." & #bl#,
 									print #parag# & "Informa-se que o contrato se refere a operação " & <strInfoContratuais.operacao> & ". São objetos desse financiamento veículo nacional ou importado, novo ou usado, registrado na categoria particular, com capacidade para até oito passageiros, excluindo o condutor. " & #bl#,
 									print #parag# & "Sobre o valor emprestado incidem juros remuneratórios com taxa prefixada incidente sobre o saldo devedor devido a partir da data da contratação até a integral liquidação do valor contratado." & #bl#,
@@ -703,25 +735,23 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & "Salienta-se que as taxas de CDI são obtidas no sítio do Banco Central, endereço www.bcb.gov.br, por meio do SISTEMA GERENCIADOR DE SÉRIES TEMPORAIS (SGS). A série utilizada é a de código " & <strInfoContratuais.cdi> & ". A taxa de CDI atualizada deve ser convertida para o fator mensal que incidirá sobre a dívida do período seguinte, juntamente com a taxa de rentabilidade." & #bl#,
 									print #parag# & "Sendo assim Excelência, resta provado acima que o contrato prevê cláusulas legais e sem vedação no nosso ordenamento jurídico, esta parte ré em momento algum se aproveitou da situação de vulnerabilidade da parte autora como o mesmo alega em sua inicial, pelo contrário, agiu de boa-fé, empregando cláusulas de financiamento totalmente legais e permitidas por Lei, financiamento este escolhido de própria vontade " & |vectAutor|.grammar("pela parte autora") & ", que no presente caso foi o CDC- Alienação Fiduciária, pois no momento seria o que lhe atenderia." & #bl#,
 									print #parag# & "As duas partes são capazes o suficiente para saber o que estão entabulando no fechamento de um negócio, o contrato discutido trata-se de ato jurídico perfeito, firmado entre partes capazes e na forma prevista em lei, o que demonstra apenas a tentativa de “ganhar tempo” no pagamento das parcelas adentrando na via judicial. É aquela velha história, “o não eu já tenho, vamos em busca do sim”." & #bl#,
-									print #parag# & "Sendo assim, esta parte ré requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("do autor") & ", uma vez que foi comprovado a legalidade das cláusulas previstas em contrato entabulado entre as partes." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Sendo assim, esta parte ré requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("do autor") & ", uma vez que foi comprovado a legalidade das cláusulas previstas em contrato entabulado entre as partes." & #bl#
 								}
 							}
 						}
 						operations {
 							if(<strModelo.modelo> == "Revisional imobiliária") {
-								use BRC_ClausulasContratuais_RealidadeDosFatos_Imobiliario
+								use TOP_ClausulasContratuais_RealidadeDosFatos_Imobiliario
 							} else {
-								use BRC_ClausulasContratuais_RealidadeDosFatos_Veiculo
-							},
-							print #bl#
+								use TOP_ClausulasContratuais_RealidadeDosFatos_Veiculo
+							}
 						}
 					},
 					branch[BRC_ImprocedenciaDosPedidos] {
 						declarations {
-							branch[BRC_ImprocedenciaDosPedidos_Imobliario] {
+							topic[TOP_ImprocedenciaDosPedidos_Imobliario] {
+								title = bold("Da Improcedência dos Pedidos do Autor – Retirada do nome do Cadastro de Inadimplentes, Compensação, Anatocismo" & printIf(<strMerito.repeticaoDeindebito>, " e Repetição de Indébito\b", "\b"))
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Da Improcedência dos Pedidos do Autor – Retirada do nome do Cadastro de Inadimplentes, Compensação, Anatocismo" & printIf(<strMerito.repeticaoDeindebito>, " e Repetição de Indébito", null)), "center") & #bl#, 
 									print #parag# & "Ora Excelência, conforme demonstrado acima e em anexos a esta defesa, é sabido que esta parte ré está cumprindo corretamente os termos contratuais pactuados e de acordo com a Lei, não podendo falar-se em " & printIf(<strModelo.modelo> == "Revisional imobiliária", "revisão de contrato", "condenação da mesma") & ", uma vez que quem está descumprindo as cláusulas contratuais estando inadimplente com a parte ré " & |vectAutor|.grammar("é a parte autora") & ". Esta parte ré cumpriu com todos os termos do contrato, conforme já explicitado nos primeiros apontamentos do mérito desta defesa." & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "As partes autoras não podem", "A parte autora não pode") & " falar em compensação de valores, pois " & printIf(|vectAutor|.size() > 1, "as mesmas não possuem", "a mesma não possui") & " nenhum valor a receber desta parte ré, mas sim a parte ré tem valores a receber da mesma, uma vez que se encontra em inadimplência do contrato habitacional. Não foi a parte ré que comprou um imóvel, mas sim " & |vectAutor|.grammar("a parte autora") & ". Da mesma forma, o pedido de retirada do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes não merece prosperar, uma vez que " & printIf(|vectAutor|.size() > 1, "as mesmas encontram-se inadimplentes ", "a mesma encontra-se inadimplente "),
 									if(<strInfoContratuais.periodoInadimplencia> == "Dias") {
@@ -749,13 +779,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & bold("Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar") & ". Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias." & #bl#,
 									print #parag# & "Em consulta a planilha de evolução do contrato, " & bold("verifica-se que o mútuo evolui a termo inexistindo anatocismo, sendo a inadimplência do contrato motivado por fatores outros que não o aumento das prestações mensais.") & #bl#,
 									print #parag# & bold("Ratifica-se que as cláusulas contratuais estão sendo respeitadas, que não houve capitalização composta ou juros sobre juros (anatocismo), que as parcelas foram atualizadas de acordo com o contratado bem como o recálculo do saldo devedor, que a forma utilizada para a amortização se encontra respaldada em cláusula contratual livremente pactuada.") & #bl#,
-									print #parag# & "Sendo assim, por todo exposto, esta parte ré pugna pela total improcedência dos pedidos elencados acima " & |vectAutor|.grammar("da parte autora") & "." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Sendo assim, por todo exposto, esta parte ré pugna pela total improcedência dos pedidos elencados acima " & |vectAutor|.grammar("da parte autora") & "." & #bl#
 								}
 							},
-							branch[BRC_ImprocedenciaDosPedidos_Veiculo] {
+							topic[TOP_ImprocedenciaDosPedidos_Veiculo] {
+								title = bold("Da Improcedência dos Pedidos do Autor – Da não Inclusão do nome do Cadastro de Inadimplentes e Da Alteração das Cláusulas Contratuais\b")
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Da Improcedência dos Pedidos do Autor – Da não Inclusão do nome do Cadastro de Inadimplentes e Da Alteração das Cláusulas Contratuais"), "center") & #bl#,
 									print #parag# & "Ora Excelência, conforme demonstrado acima e em anexos a esta defesa, é sabido que esta parte ré está cumprindo corretamente os termos contratuais pactuados e de acordo com a Lei, não podendo falar-se em " & printIf(<strModelo.modelo> == "Revisional imobiliária", "revisão de contrato", "condenação da mesma") & ", uma vez que quem está descumprindo as cláusulas contratuais estando inadimplente com a parte ré " & |vectAutor|.grammar("é a parte autora") & ". Esta parte ré cumpriu com todos os termos do contrato, conforme já explicitado nos primeiros apontamentos do mérito desta defesa." & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "As partes autoras não podem", "A parte autora não pode") & " em revisão nas cláusulas contratuais, uma vez que as mesmas respeitam o ordenamento jurídico e a Resolução nº 1129/86 do BACEN. Havendo a expressa previsão contratual, que não viola nenhuma norma de ordem pública, esta deve ser respeitada. O presente contrato trata-se de ato jurídico perfeito, firmado entre partes capazes que sabiam o que estava contratando e na forma prevista em lei. Esta parte ré não “forçou” em nenhum momento a assinatura do contrato de financiamento do veículo pela parte autora." & #bl#,
 									print #parag# & "Da mesma forma, o pedido de não inclusão do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes não merece prosperar, uma vez que " & printIf(|vectAutor|.size() > 1, "as mesmas  se encontram inadimplentes ", "a mesma se encontra inadimplente "),
@@ -789,37 +818,33 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print #parag# & bold("Logo, de acordo com a boa lógica, se os juros foram pagos no vencimento não há o que capitalizar") & ". Não são as taxas de juros e nem os períodos de vencimentos que caracterizam a capitalização composta. Os contratos, data vênia e salvo melhor entendimento, podem estabelecer livremente tanto as taxas aplicáveis em cada período de vencimento, como os vencimentos, que não têm a obrigação de ser a cada 30 (trinta) dias." & #bl#,
 									print #parag# & "Em consulta a planilha de evolução do contrato, " & bold("verifica-se que o mútuo evolui a termo inexistindo anatocismo, sendo a inadimplência do contrato motivado por fatores outros que não o aumento das prestações mensais.") & #bl#,
 									print #parag# & bold("Ratifica-se que as cláusulas contratuais estão sendo respeitadas, que não houve capitalização composta ou juros sobre juros (anatocismo), que as parcelas foram atualizadas de acordo com o contratado bem como o recálculo do saldo devedor, que a forma utilizada para a amortização se encontra respaldada em cláusula contratual livremente pactuada.") & #bl#,
-									print #parag# & "Sendo assim, por todo exposto, esta parte ré pugna pela total improcedência dos pedidos elencados acima " & |vectAutor|.grammar("da parte autora") & "." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Sendo assim, por todo exposto, esta parte ré pugna pela total improcedência dos pedidos elencados acima " & |vectAutor|.grammar("da parte autora") & "." & #bl#
 								}
 							}
 						}
 						operations {
 							if(<strModelo.modelo> == "Revisional imobiliária") {
-								use BRC_ImprocedenciaDosPedidos_Imobliario
+								use TOP_ImprocedenciaDosPedidos_Imobliario
 							} else {
-								use BRC_ImprocedenciaDosPedidos_Veiculo
-							},
-							print #bl#
+								use TOP_ImprocedenciaDosPedidos_Veiculo
+							}
 						}
 					},
-					branch[BRC_InexistenciaDeFalha] {
+					topic[TOP_InexistenciaDeFalha] {
+						title = bold("Da Inexistência de Falha no Serviço Prestado - Das Cláusulas Contratuais\b")
 						operations {
-							print align(bold(<contTopic> & "." & <cont> & " Da Inexistência de Falha no Serviço Prestado - Das Cláusulas Contratuais"), "center") & #bl#,
 							print #parag# & "Em que pese o esforço de argumentação da parte autora, não há como prosperar o presente pleito, haja vista que a conduta da parte ré está respaldada na mais plena legalidade. No entanto, em homenagem aos princípios do contraditório e da ampla defesa, vem a parte ré trazer aos autos a realidade dos acontecimentos, com o que Vossa Excelência, indubitavelmente, concluirá pela total improcedência dos pedidos requeridos " & |vectAutor|.grammar("pela parte autora") & ". " & #bl#,
 							print #parag# & "Adentrando no mérito da questão, não há qualquer razão a assistir " & |vectAutor|.grammar("à parte autora") & ". Ora, o contrato em questão, elaborado dentro das normas vigentes, visa atender às partes contratantes. Assim, o pretendente ao financiamento somente aceita contratar se o quiser, dentro da sua vontade livre e consciente." & bold(" A parte ré  não impôs " & |vectAutor|.grammar("a parte autora") & " a celebração do contrato referido.") & #bl#,
 							print #parag# & "Poderia ter optado por outro banco cujas cláusulas estivessem dentro de suas possibilidades, ou cujo agente financeiro fosse do seu agrado." & #bl#,
 							print #parag# & "Assim, o contrato foi firmado tendo como elemento decisivo o consentimento livre " & |vectAutor|.grammar("da parte autora") & ". Nesse diapasão, não há como também se afastar o princípio pacta sunt servanda, cuja aplicação faz-se necessária em qualquer contrato perfeito e acabado. Assim, é de se concluir que não há ilegalidade ou abusividade no contrato firmado com a Embargada, destacando-se, ainda, que ela teve ciência previamente de todos os termos do contrato, bem como teve a liberdade de escolher se iria contratar ou não, com que instituição contratar, sob que forma e quais os termos dos contratos." & #bl#,
-							print #parag# & "O caso sub judice trata-se de um contrato livremente acordado entre partes capazes, com objeto lícito, forma prescrita ou não defesa em lei, sendo, portanto um ato jurídico perfeito, o qual é protegido pela Magna Carta em seu art. 5º, inc. XXXVI, defeso de modificações quer por vontade unilateral de qualquer das partes, do magistrado ou da própria lei. Assim " & printIf(|vectAutor|.size() > 1, "as partes autoras sabiam", "a parte autora sabia") & " previamente à assinatura do contrato de todas as obrigações dele decorrentes, e, uma vez que as aceitou, não pode eximir-se de cumprir com as suas obrigações." & #bl#,
-							print #bl#,
-							<cont> = <cont> + 1
+							print #parag# & "O caso sub judice trata-se de um contrato livremente acordado entre partes capazes, com objeto lícito, forma prescrita ou não defesa em lei, sendo, portanto um ato jurídico perfeito, o qual é protegido pela Magna Carta em seu art. 5º, inc. XXXVI, defeso de modificações quer por vontade unilateral de qualquer das partes, do magistrado ou da própria lei. Assim " & printIf(|vectAutor|.size() > 1, "as partes autoras sabiam", "a parte autora sabia") & " previamente à assinatura do contrato de todas as obrigações dele decorrentes, e, uma vez que as aceitou, não pode eximir-se de cumprir com as suas obrigações." & #bl#
 						}
 					},
 					branch[BRC_TutelaDeUrgencia] {
 						declarations {
-							branch[BRC_TutelaDeUrgencia_Imobliario] {
+							topic[TOP_TutelaDeUrgencia_Imobliario] {
+								title = bold("Do Não Cabimento do Pedido de Tutela de Urgência\b")
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Do Não Cabimento do Pedido de Tutela de Urgência"), "center") & #bl#,
 									print #parag# & "O art. 300 do NCPC estabelece os requisitos necessários para a antecipação dos efeitos da tutela de urgência, especificando que a parte deverá comprovar o perigo de dano ou o risco ao resultado útil do processo, o que não foi demonstrado a ponto de ensejar a antecipação da tutela." & #bl#,
 									print #parag# & "Estando presente a inadimplência contratual e não havendo qualquer ilicitude no contrato, não se mostram presentes os requisitos legalmente previstos para a concessão de tutela de urgência ou de evidência (arts. 300 e 311, CPC), não sendo suficientes os motivos alegados " & |vectAutor|.grammar("pela parte autora") & " para impedir que a parte ré exercite o seu legítimo direito de proceder à execução do contrato, em conformidade com a Lei nº 9.514/97. " & #bl#,
 									print #parag# & "Vale ressaltar a validade da referida lei, conforme jurisprudência pacífica, exemplificada pela ementa de acórdão abaixo colacionada:" & #bl#,
@@ -838,35 +863,32 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									print ". " & |vectAutor|.grammar("A parte autora") & " não tem razão alguma ao buscar revisões de cláusulas contratuais alegando que a parte ré não está cumprindo com os termos compactuados, sendo que quem não vem cumprindo com suas devidas obrigações de pagamento das parcelas é " & |vectAutor|.grammar("a parte autora") & "." & #bl#,
 									print #parag# & "Ademais, se a tutela pretendida for antecipada, ela será irreversível, não podendo ser concedida, consoante disposto no artigo 300, § 3º, pois patente que seria totalmente inviável a aplicação do disposto no artigo 302 desta Lei, culminando no periculum in mora reverso, fator impeditivo à pretensão antecipatória." & #bl#,
 									print #parag# & "Na verdade, o pedido de antecipação da tutela é de sorte o próprio mérito e não pode ser decidido perfunctoriamente, sob pena de cerceamento de defesa e ofensa à segurança jurídica, razão pela qual requer seja indeferido o pedido de antecipação dos efeitos da tutela, por ausência dos requisitos necessários para tal concessão." & #bl#,
-									print #parag# & "Diante de sua sabedoria e entendimento acerca das leis, este Juízo ainda não decidiu acerca do pedido de tutela antecipada nesses autos, com isso, requer-se a improcedência do pedido de julgamento antecipado do mérito, mantendo-se a dilação probatória e o normal julgamento do feito." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Diante de sua sabedoria e entendimento acerca das leis, este Juízo ainda não decidiu acerca do pedido de tutela antecipada nesses autos, com isso, requer-se a improcedência do pedido de julgamento antecipado do mérito, mantendo-se a dilação probatória e o normal julgamento do feito." & #bl#
 								}
 							},
-							branch[BRC_TutelaDeUrgencia_Veiculo] {
+							topic[TOP_TutelaDeUrgencia_Veiculo] {
+								title = bold("Do Não Cabimento do Pedido de Tutela de Urgência\b")
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Do Não Cabimento do Pedido de Tutela de Urgência"), "center") & #bl#,
 									print #parag# & "O art. 300 do NCPC estabelece os requisitos necessários para a antecipação dos efeitos da tutela de urgência, especificando que a parte deverá comprovar o perigo de dano ou o risco ao resultado útil do processo, o que não foi demonstrado a ponto de ensejar a antecipação da tutela." & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "As partes autoras pleitearam", "A parte autora pleiteou") & " o julgamento antecipado do mérito. No entanto, a matéria é de fato e de direito, o que impõe a produção de prova. No presente caso este Douto Juízo entendeu por não acatar o pedido de tutela antecipada por ora pois restou ausente os requisitos, quais sejam o " & it("periculum in mora") & ", uma vez que não há prova de inscrição ativa nos cadastros de proteção ao crédito nem de protestos, " & bold("sem efetiva comprovação de inscrição no aludido cadastro e, consequentemente, sem risco de dano. ") & "Ademais, eventual inscrição por inadimplência estaria em consonância com o ordenamento jurídico vigente." & #bl#,
 									print #parag# & printIf(|vectAutor|.size() > 1, "Requereram", "Requereu") & ", ainda, autorização dos depósitos judiciais das parcelas vencidas e vincendas e a manutenção da posse do bem dado em garantia. Ocorre que, como muito bem pontuado por este D. Juízo, tais medidas não apresentam as condições de deferimento liminar, haja vista a necessidade de dilação probatória e contraditório mínimo." & #bl#,
 									print #parag# & "Ademais, se a tutela pretendida for antecipada, ela será irreversível, não podendo ser concedida, consoante disposto no artigo 300, § 3º, pois patente que seria totalmente inviável a aplicação do disposto no artigo 302 desta Lei, culminando no periculum in mora reverso, fator impeditivo à pretensão antecipatória." & #bl#,
 									print #parag# & "Na verdade, o pedido de antecipação da tutela é de sorte o próprio mérito e não pode ser decidido perfunctoriamente, sob pena de cerceamento de defesa e ofensa à segurança jurídica, razão pela qual requer seja indeferido o pedido de antecipação dos efeitos da tutela, por ausência dos requisitos necessários para tal concessão." & #bl#,
-									print #parag# & "Diante de sua sabedoria e entendimento acerca das leis, este Juízo ainda já se decidiu acerca do pedido de tutela antecipada nesses autos indeferindo tal pedido por ora, com isso, requer-se a manutenção da improcedência do pedido de julgamento antecipado do mérito, mantendo-se a dilação probatória e o normal julgamento do feito." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Diante de sua sabedoria e entendimento acerca das leis, este Juízo ainda já se decidiu acerca do pedido de tutela antecipada nesses autos indeferindo tal pedido por ora, com isso, requer-se a manutenção da improcedência do pedido de julgamento antecipado do mérito, mantendo-se a dilação probatória e o normal julgamento do feito." & #bl#
 								}
 							}
 						}
 						operations {
 							if(<strModelo.modelo> == "Revisional imobiliária") {
-								use BRC_TutelaDeUrgencia_Imobliario
+								use TOP_TutelaDeUrgencia_Imobliario
 							} else {
-								use BRC_TutelaDeUrgencia_Veiculo
-							},
-							print #bl#
+								use TOP_TutelaDeUrgencia_Veiculo
+							}
 						}
 					},
-					branch[BRC_OnusDaProva] {
+					topic[TOP_OnusDaProva] {
+						title = bold("Da Inaplicabilidade do CDC aos Contratos Vinculados ao SFH e Da inversão do ônus da prova\b")
 						operations {
-							print align(bold(<contTopic> & "." & <cont> & " Da Inaplicabilidade do CDC aos Contratos Vinculados ao SFH e Da inversão do ônus da prova"), "center") & #bl#,
 							print #parag# & "De acordo com o artigo 6º, VIII do Código de Defesa do Consumidor, é direito do consumidor “" & it("a facilitação da defesa de seus direitos, inclusive com a inversão do ônus da prova, a seu favor, no processo civil, quando, a critério do juiz, for verossímil a alegação ou quando for ele hipossuficiente, segundo as regras ordinárias de experiências") & "”." & #bl#,
 							print #parag# & "Da leitura do dispositivo retro, resta claro que a inversão do ônus é " & it("ope judicis") & ", ou seja, não se dá de forma automática, devendo o juiz verificar, caso a caso, a hipossuficiência do consumidor." & #bl#,
 							print #parag# & "Vale ressaltar que vulnerabilidade e hipossuficiência são conceitos distintos. Trata-se a primeira de uma presunção absoluta em favor do consumidor, que é sempre considerado vulnerável no momento em que adquire bens ou serviços." & #bl#,
@@ -884,16 +906,14 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 							print #parag# & "Dessa maneira, não há motivos para a pretendida inversão do ônus da prova, e mesmo que se entendesse aplicável ao caso concreto as disposições do CDC, essa inversão não é automática, dependendo-a da presença de requisitos como a hipossuficiência probatória." & #bl#,
 							print #parag# & "No presente caso, a prova destinada a provar os fatos alegados na inicial pode ser produzida " & |vectAutor|.grammar("pela parte autora") & ", ou seja, não se mostra presente a impossibilidade de " & printIf(|vectAutor|.size() > 1, "as partes autoras produzirem", "a parte autora produzir") & " prova de suas alegações que possa levar à inversão do ônus da prova." & #bl#,
 							print #parag# & "Ademais, ainda que assim não fosse, a hipossuficiência capaz de ensejar a inversão do ônus da prova, baseada no Código de Defesa do Consumidor, decorre da prévia e inequívoca demonstração da existência de uma intransponível dificuldade encontrada pelo consumidor para se desincumbir a contento do ônus probatório estabelecido no art. 373 do CPC, o que não ocorre no presente caso, onde não existe evidência da ocorrência de qualquer tipo de dificuldade ou óbice instransponível enfrentados " & |vectAutor|.grammar("pela parte autora") & ", não existindo, destarte, qualquer justificativa plausível para a transferência desse ônus para a parte ré." & #bl#,
-							print #parag# & "Diante do exposto, ainda que se entendesse aplicável o CDC ao presente caso, não há motivo para inversão do ônus da prova, permanecendo incólume a regra geral contida no art. 373, I, do CPC, segundo a qual o ônus da prova incumbe ao autor quanto ao fato constitutivo de seu direito." & #bl#,
-							print #bl#,
-							<cont> = <cont> + 1
+							print #parag# & "Diante do exposto, ainda que se entendesse aplicável o CDC ao presente caso, não há motivo para inversão do ônus da prova, permanecendo incólume a regra geral contida no art. 373, I, do CPC, segundo a qual o ônus da prova incumbe ao autor quanto ao fato constitutivo de seu direito." & #bl#
 						}
 					},
 					branch[BRC_DepositoEmConsignacao] {
 						declarations {
-							branch[BRC_DepositoEmConsignacao_Imobliario] {
+							topic[TOP_DepositoEmConsignacao_Imobliario] {
+								title = bold ("Do Pedido de Depósito em Consignação Pretendido – Purgação da Mora\b")
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Do Pedido de Depósito em Consignação Pretendido – Purgação da Mora"), "center") & #bl#,
 									print #parag# & "A Lei n.º 10.931, de 02 de agosto de 2004, estabelece regras processuais para as demandas envolvendo contratos de financiamento imobiliário." & #bl#,
 									print #parag# & "Preceitua o art. 50 desse dispositivo legal que nas ações judiciais que tenham por objeto obrigação decorrente de empréstimo, financiamento ou alienação imobiliários, " & printIf(|vectAutor|.size() > 1, "as partes autoras deverão", "a parte autora deverá") & " discriminar na petição inicial as obrigações contratuais que pretende controverter, quantificando o valor incontroverso, sob pena de inépcia, o qual deve continuar sendo pago no tempo e modo contratados, e a exigibilidade do valor controvertido só poderá ser suspensa mediante depósito do montante correspondente, no tempo e modo contratados:" & #bl#,
 									citation("“Art. 50. Nas ações judiciais que tenham por objeto obrigação decorrente de empréstimo, financiamento ou alienação imobiliários, o autor deverá discriminar na petição inicial, dentre as obrigações contratuais, aquelas que pretende controverter, quantificando o valor incontroverso, sob pena de inépcia. \b§ 1o O valor incontroverso deverá continuar sendo pago n o tempo e modo contratados. \b§ 2o A exigibilidade do valor controvertido poderá ser suspensa mediante depósito do montante correspondente, no tempo e modo contratados.\b§ 3o Em havendo concordância do réu, o autor poderá efetuar o depósito de que trata o § 2o deste artigo, com remuneração e atualização nas mesmas condições aplicadas ao contrato: \bI - na própria instituição financeira credora, oficial ou não; ou \bII - em instituição financeira indicada pelo credor, oficial ou não, desde que estes tenham pactuado nesse sentido. \b§ 4o O juiz poderá dispensar o depósito de que trata o § 2o em caso de relevante razão de direito e risco de dano irreparável ao autor, por decisão fundamentada na qual serão detalhadas as razões jurídicas e fáticas da ilegitimidade da cobrança no caso concreto.\b§ 5o É vedada a suspensão liminar da exigibilidade da obrigação principal sob a alegação de compensação com valores pagos a maior, sem o depósito do valor integral desta."),
@@ -907,194 +927,106 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 									citation("DIREITO CIVIL E PROCESSO CIVIL. SFH. ILEGITIMIDADE PASSIVA AD CAUSAM DA SEGURADORA. PERÍCIA DESNECESSÁRIA. CDC. PES - MUTUÁRIO AUTÔNOMO CONTRATO POSTERIOR À CF/88 - INAPLICABILIDADE DO SALÁRIO MÍNIMO. SEGURO. TCA. TABELA PRICE X SAC. TR. AMORTIZAÇÃO. JUROS. MULTA MORATÓRIA. DL 70/66. ANTECIPAÇÃO DA TUTELA -AUSÊNCIA DE REQUISITOS. (...) 6. Não há prova nos autos de que os índices aplicados pelo agente financeiro para reajuste das prestações mensais tenham sido abusivos ou aumentado o comprometimento da renda do mutuário (autônomo) - quebra da equivalência renda-salário. Ao contrário, vê-se que o aumento da prestação não foi causa determinante da inadimplência , que teve início em Abril/2000, após o pagamento de apenas 14 prestações, quando o encargo inicial tinha subido apenas R$ 9,00 (nove reais). (...)18. Apelação da Autora desprovida.\b(AC 200138000315415, JUIZ FEDERAL PEDRO FRANCISCO DA SILVA (CONV.), TRF1 - QUINTA TURMA, 03/07/2009)."),
 									print #bl#,
 									print #parag# & "Face a todo o exposto, resta comprovado que o valor da prestação cobrado pela parte ré é regular e que a ausência de pagamento das parcelas é que acarretou a execução extrajudicial contra " & |vectAutor|.grammar("a parte autora") & "." & #bl#,
-									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("da parte autora") & " no tocante a permissão dos depósitos dos valores e do pedido de compensação de valores, uma vez que não houve vícios contratuais por parte desta ré." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos " & |vectAutor|.grammar("da parte autora") & " no tocante a permissão dos depósitos dos valores e do pedido de compensação de valores, uma vez que não houve vícios contratuais por parte desta ré." & #bl#
 								}
 							},
-							branch[BRC_DepositoEmConsignacao_Veiculo] {
+							topic[TOP_DepositoEmConsignacao_Veiculo] {
+								title = bold("Do Pedido de Depósito em Consignação Pretendido\b")
 								operations {
-									print align(bold(<contTopic> & "." & <cont> & " Do Pedido de Depósito em Consignação Pretendido"), "center") & #bl#,
 									print #parag# & "Preceitua o art. 330 do Novo CPC que nas ações judiciais que tenham por objeto obrigação decorrente de empréstimo, financiamento ou alienação de bens, " & printIf(|vectAutor|.size() > 1, "as partes autoras deverão", "a parte autora deverá") & " discriminar na petição inicial as obrigações contratuais que pretende controverter, quantificando o valor incontroverso, sob pena de inépcia, o qual deve continuar sendo pago no tempo e modo contratados, e a exigibilidade do valor controvertido só poderá ser suspensa mediante depósito do montante correspondente, no tempo e modo contratados. Vejamos:" & #bl#,
 									citation("Art. 330. A petição inicial será indeferida quando:\b\b§ 2º Nas ações que tenham por objeto a revisão de obrigação decorrente de empréstimo, de financiamento ou de alienação de bens, o autor terá de, sob pena de inépcia, discriminar na petição inicial, dentre as obrigações contratuais, aquelas que pretende controverter, além de quantificar o valor incontroverso do débito.\b\b§ 3º Na hipótese do § 2º, o valor incontroverso deverá continuar a ser pago no tempo e modo contratados."),
 									print #bl#,
-									if(<strPreliminares.valoresIncontroversos>) {
-										if(<strPreliminares.ocorreuDeposito> == false) {
-											print #parag# & "Ora Excelência, de acordo com o artigo acima e seus parágrafos 2º e 3º o valor incontroverso demonstrado na petição inicial deverá continuar a ser pago no tempo e modo contratado, o que não ocorreu no presente caso, pois não houve depósito judicial dos valores incontroversos apresentados pel" & |vectAutor|.grammar("a parte autora") & ", sendo assim, a inicial deverá ser extinta." & #bl#
+									if(<strPreliminares.desejaAlegarPreliminares>) {
+										if(<strPreliminares.valoresIncontroversos>) {
+											if(<strPreliminares.ocorreuDeposito> == false) {
+												print #parag# & "Ora Excelência, de acordo com o artigo acima e seus parágrafos 2º e 3º o valor incontroverso demonstrado na petição inicial deverá continuar a ser pago no tempo e modo contratado, o que não ocorreu no presente caso, pois não houve depósito judicial dos valores incontroversos apresentados pel" & |vectAutor|.grammar("a parte autora") & ", sendo assim, a inicial deverá ser extinta." & #bl#
+											}
 										}
 									},
 									print #parag# & "De acordo com a Lei, a exigibilidade do crédito referente a financiamento só poderá ser suspensa mediante o pagamento do valor incontroverso e o depósito integral da quantia controvertida. Não pode " & |vectAutor|.grammar("a parte autora") & " simplesmente apresentar como devido um quantum apurado unilateralmente e pretender que o mesmo seja depositado judicialmente, para que o agente financeiro fique impedido de exigir a satisfação de seu crédito pelo instrumento da alienação fiduciária que legitimamente lhe outorga a Lei e as cláusulas contratuais." & #bl#,
-									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos d" & |vectAutor|.grammar("a parte autora") & " no tocante a permissão dos depósitos dos valores, uma vez que não houve vícios contratuais por parte desta ré." & #bl#,
-									<cont> = <cont> + 1
+									print #parag# & "Assim, por todo exposto, requer deste Douto Juízo a total improcedência dos pedidos d" & |vectAutor|.grammar("a parte autora") & " no tocante a permissão dos depósitos dos valores, uma vez que não houve vícios contratuais por parte desta ré." & #bl#
 								}
 							}
 						}
 						operations {
 							if(<strModelo.modelo> == "Revisional imobiliária") {
-								use BRC_DepositoEmConsignacao_Imobliario
+								use TOP_DepositoEmConsignacao_Imobliario
 							} else {
-								use BRC_DepositoEmConsignacao_Veiculo
-							},
-							print #bl#
+								use TOP_DepositoEmConsignacao_Veiculo
+							}
 						}
 					}
 				}
 				operations {
-					print align(bold(<contTopic> & " Mérito"), "center") & #bl#,
 					use BRC_ClausulasContratuais_RealidadeDosFatos,
 					use BRC_ImprocedenciaDosPedidos,
 					if(<strModelo.modelo> == "Revisional veículo") {
-						use BRC_InexistenciaDeFalha
+						use TOP_InexistenciaDeFalha
 					},
 					if(<strMerito.tutelaProvisoria>) {
 						use BRC_TutelaDeUrgencia
 					},
 					if(<strMerito.inversaoOnus>) {
-						use BRC_OnusDaProva
+						use TOP_OnusDaProva
 					},
-					use BRC_DepositoEmConsignacao,
-					<contTopic> = <contTopic> + 1
+					use BRC_DepositoEmConsignacao
 				}
 			},
-			branch[BRC_Pedidos] {
+			topic[TOP_Pedidos] {
+				title = bold("Pedido\b")
 				declarations {
 					branch[BRC_Pedidos_Imobliario] {
-						declarations {
-							-<cont> : Integer {default = 1},
-							branch[BRC_Docs_Pedidos_Imobliario] {
-								declarations {
-									-<contDoc> : Integer {default = 1}
-								}
-								operations {
-									if("Procuração" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Procuração;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Substabelecimento" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Substabelecimento;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Contrato" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Contrato;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Ficha de cadastro da parte autora e protocolo de entrega da planilha" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Ficha de cadastro da parte autora e protocolo de entrega da planilha;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Planilha de evolução das parcelas" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução das parcelas;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Planilha de evolução do débito, resumo do débito e atraso no pagamento" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução do débito, resumo do débito e atraso no pagamento;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									}
-								}
-							}
-						}
 						operations {
-							if(<strPreliminares.alegaJG>) {
-								print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de impugnação da assistência judiciária gratuita para " & |vectAutor|.grammar("a parte autora") & ", uma vez que não foi comprovada sua hipossuficiência financeira;",
-								<cont> = <cont> + 1,
-								print #bl#
-							},
-
-							print #parag# & <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de suspensão da execução extrajudicial, retirada do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes, revisão contratual" & printIf(<strMerito.repeticaoDeindebito>, ", repetição de indébito", null) & ", compensação de valores" & printIf(<strMerito.tutelaProvisoria>, ", tutela antecipada", null) & printIf(<strMerito.inversaoOnus>, " e inversão do ônus da prova", null)	& ", conforme razões expostas;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal.",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
-							use BRC_Docs_Pedidos_Imobliario,
-							<cont> = <cont> + 1
+							print "\t\t\psejam julgados improcedentes os pedidos iniciais de suspensão da execução extrajudicial, retirada do nome " & |vectAutor|.grammar("da parte autora") & " do cadastro de inadimplentes, revisão contratual" & printIf(<strMerito.repeticaoDeindebito>, ", repetição de indébito", null) & ", compensação de valores" & printIf(<strMerito.tutelaProvisoria>, ", tutela antecipada", null) & printIf(<strMerito.inversaoOnus>, " e inversão do ônus da prova", null)	& ", conforme razões expostas;\n\b" & #bl#,
+							print "\t\t\pseja deferida a produção de todos os meios de provas admitidos em direito;\n\b" & #bl#,
+							print "\t\t\pseja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;\n\b" & #bl#
 						}
 					},
 					branch[BRC_Pedidos_Veiculo] {
-						declarations {
-							-<cont> : Integer {default = 1},
-							branch[BRC_Docs_Pedidos_Veiculo] {
-								declarations {
-									-<contDoc> : Integer {default = 1}
-								}
-								operations {
-									if("Procuração" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Procuração;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Substabelecimento" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Substabelecimento;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Contrato" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Contrato;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									},
-									if("Planilha de evolução do contrato" IN <strDocumentos.documentos>) {
-										print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Planilha de evolução do contrato;", "10pt"),
-										<contDoc> = <contDoc> + 1
-									}
-								}
-							}
-						}
 						operations {
-							if(<strPreliminares.valoresIncontroversos>) {
-								if(<strPreliminares.ocorreuDeposito> == false) {
-									print #parag# & <contTopic> & "." & <cont> & " seja acolhida a preliminar de inépcia da inicial e extinta a presente ação;",
-									<cont> = <cont> + 1,
-									print #bl#
-								}
-							},
-
-							if(<strMerito.tutelaProvisoria>) {
-								print #parag# & <contTopic> & "." & <cont> & " seja mantido o indeferimento dos pedidos de tutela provisória de urgência, ante a necessidade de dilação probatória, conforme já reconhecido por este Douto Juízo;",
-								<cont> = <cont> + 1,
-								print #bl#
-							},
-
-							print #parag# & <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais de alteração das cláusulas e de consignação de pagamento, bem como a manutenção da decisão que julgou improcedente a tutela jurisdicional, conforme razões expostas;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " seja deferida a produção de todos os meios de provas admitidos em direito;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal.",
-							<cont> = <cont> + 1,
-							print #bl#,
-
-							print #parag# & <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:" & #bl#,
-							use BRC_Docs_Pedidos_Veiculo,
-							<cont> = <cont> + 1,
-							print #bl#
+							print "\t\t\psejam julgados improcedentes os pedidos iniciais de alteração das cláusulas e de consignação de pagamento, bem como a manutenção da decisão que julgou improcedente a tutela jurisdicional, conforme razões expostas;\n\b" & #bl#,
+							print "\t\t\pseja deferida a produção de todos os meios de provas admitidos em direito;\n\b" & #bl#,
+							print "\t\t\pseja determinado o desentranhamento dos documentos juntados " & |vectAutor|.grammar("pela parte autora") & " em cópia simples;\n\b" & #bl#
 						}
 					}	
 				}
 				operations {
-					print align(bold(<contTopic> & " Pedido"), "center") & #bl#,
 					print #parag# & "Ante o exposto requer que" & #bl#,
+					if(<strPreliminares.desejaAlegarPreliminares>) {
+						if(<strPreliminares.inepciaAusenciaDocs>) {
+							print "\t\t" & "\pseja acolhida a preliminar suscitada de inépcia da inicial em face da ausência de documento imprescindível para a propositura da demanda, extinguindo-se o feito sem resolução do mérito, nos termos dos artigos 320, 321 c/c 434 e 485, inciso I do CPC.\n\b"
+						},
+						if(<strPreliminares.quebraDeSigilo>) {
+							print "\t\t" & "\pseja acolhida a preliminar suscitada de quebra de sigilo bancário para apresentação de provas;\n\b"
+						},
+						if(<strPreliminares.alegaJG>) {
+							print "\t\t" & "\pseja acolhida a preliminar de impugnação da assistência judiciária gratuita para " & |vectAutor|.grammar("a parte autora") & ", uma vez que não foi comprovada sua hipossuficiência financeira;\n\b"
+						},
+						if(<strPreliminares.valoresIncontroversos>) {
+							if(<strPreliminares.ocorreuDeposito> == false) {
+								print "\t\t" & "\pseja acolhida a preliminar de inépcia da inicial e extinta a presente ação devido a ausência de comprovação do depósito dos valores incontroversos;\n\b"
+							}
+						}
+					},
+					if(<strMerito.tutelaProvisoria>) {
+						print "\t\t\pseja mantido o indeferimento dos pedidos de tutela provisória de urgência, ante a necessidade de dilação probatória, conforme já reconhecido por este Douto Juízo;\n\b" & #bl#
+					},
 					if(<strModelo.modelo> == "Revisional imobiliária") {
 						use BRC_Pedidos_Imobliario
 					} else {
 						use BRC_Pedidos_Veiculo
 					},
-					<contTopic> = <contTopic> + 1,
-					print #bl#
+					print "\t\t\pas intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal.\n\b" & #bl#,
+					print "\t\t\pfinalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do NCPC:\b" & #bl#,
+					print fontSize("\t\t\p" & "Procuração;", "10pt") & "\n",
+					print fontSize("\t\t\p" & "Substabelecimento;", "10pt") & "\n",
+					if("Outros" IN <strDocumentos.documentos>) {
+						foreach(<doc> IN |strDocumentos.vectOutrosDocs|) {
+							print fontSize(firstUpper("\t\t\p" & <doc> & ";"), "10pt") & "\n"
+						}
+					},
+					print #dbl#,
+					print #dbl#
 				}	
 			},
 			branch[BRC_Encerramento] {
@@ -1132,20 +1064,12 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 			use BRC_Estilo,
 			use BRC_Enderecamento,
 			use BRC_Qualificacao,
-			if(<strModelo.modelo> == "Revisional imobiliária") {
-				if(<strPreliminares.alegaJG>) {
-					use BRC_Preliminares
-				}
-			} else {
-				if(<strPreliminares.valoresIncontroversos>) {
-					if(<strPreliminares.ocorreuDeposito> == false) {
-						use BRC_Preliminares
-					}
-				}
+			if(<strPreliminares.desejaAlegarPreliminares>) {
+				use TOP_Preliminares
 			},
-			use BRC_BreveHistorico,
-			use BRC_Merito,
-			use BRC_Pedidos,
+			use TOP_BreveHistorico,
+			use TOP_Merito,
+			use TOP_Pedidos,
 			use BRC_Encerramento
 		}
  	}
@@ -1164,7 +1088,6 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 				index = true
 				operations {
 					|vectAutor|.ask()
-					//|vectReu|.ask()
 				}	
 			},
 			branch[TOC_Preliminares_Fatos] {
