@@ -1,5 +1,5 @@
 page-size: A4 portrait;
-page-margin: 30mm 20mm 28mm 30mm;
+page-margin: 30mm 27mm 28mm 30mm;
 content-margin: 0mm 0mm 0mm 0mm;
 
 page-number: true;
