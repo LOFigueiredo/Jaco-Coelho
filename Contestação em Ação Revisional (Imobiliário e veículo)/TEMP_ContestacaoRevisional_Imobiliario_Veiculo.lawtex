@@ -292,7 +292,7 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						},
 						+[premio] : Currency {
 							name = "Prêmio"
-							request = "Informe o valor do prêmio"
+							request = "Informe o valor da indenização"
 						},
 						+[taxaOperacional] : Currency {
 							name = "Taxa operacional"
