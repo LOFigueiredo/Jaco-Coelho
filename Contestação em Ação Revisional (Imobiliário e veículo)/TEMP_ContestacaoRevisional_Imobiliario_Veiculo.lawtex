@@ -301,7 +301,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						-[total] : Currency,
 						+[taxaDeJurosAnual] : Real {
 							name = "Taxa de juros anual"
-							request = "Informe a taxa de juros anual"
+							request = "Informe a taxa de juros anual. Veja o help para mais informações"
+							help = "Utilizar a vírgula para separar as casas decimais, tendo em vista que se trata de valor percentual"
 						},
 						-[taxaDeJurosMensal] : Real,
 						+[pagamentoPorDebitoAutomatico] : Boolean {
@@ -310,7 +311,8 @@ template[TEMP_ContestacaoRevisional_Imobiliario_Veiculo] {
 						if([pagamentoPorDebitoAutomatico]) {
 							+[taxaDeJurosAnualComDesconto] : Real {
 								name = "Taxa de juros anual com desconto"
-								request = "Informe a taxa de juros anual com desconto"
+								request = "Informe a taxa de juros anual com desconto. Veja o help para mais informações"
+								help = "Utilizar a vírgula para separar as casas decimais, tendo em vista que se trata de valor percentual"
 							}
 						},
 						+[exclusaoDaTaxa] : Date {
