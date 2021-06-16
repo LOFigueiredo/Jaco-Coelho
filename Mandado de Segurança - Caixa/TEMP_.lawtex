@@ -1,17 +1,752 @@
-template[TEMP_TemplateAlias] { 
+//ignore [Uf]
+template[TEMP_MandadoDeSeguranca_Caixa] { 
 	metainfo { 
 		language = "pt_BR"
-		name = "..."
+		name = "Mandado de Segurança - Caixa (Jacó-Coelho)"
+		style = "STY_ContestacaoAcaoRevisonal.lawsty"
 		declarations {
-			...
+			//CONSTANTES
+			-#parag# : String {value = "<p class = 'paragrafo'>"},
+			-#bl# : String {value = "\b"},
+			-<contTopic> : Integer {default = 1},
+			//LISTAS
+			list[ListaAdvogados_JacoCoelho] {
+				fields = {"Nome", "OAB"}
+				options = (
+					{"Jacó Carlos Silva Coelho", "OAB/GO 13.721"},
+					{"Allinne Rizzie Coelho Oliveira Garcia","OAB/GO 24.549"}, 
+					{"Claudinéia Santos Pereira","OAB/GO 22.376"},
+					{"Lucimer Coelho de Freitas","OAB/GO 33.001"},
+					{"Fabiane Gomes Pereira","OAB/GO 30.485"},
+					{"Daniele de Faria Ribeiro Gonzaga","OAB/GO 36.528"})
+				type = "String"
+			},
+			list[Numeros] {
+				fields = {"Quantidade", "Print"}
+				options = (
+					{"0", "primeira"},
+					{"1", "segunda"}, 
+					{"2", "terceira"},
+					{"3", "quarta"},
+					{"4", "quinta"},
+					{"5", "sexta"},
+					{"6", "sétima"}, 
+					{"7", "oitava"},
+					{"8", "nona"},
+					{"9", "décima"})
+				type = "String"
+			},
+			//VETORES
+			+|vectAutor| : Vector[Struct] {
+				name = "Impetrante"
+				id = [nome] 
+				fields {
+					+[nome] : String {
+						name = "Nome"
+					},
+					+[genero] : List ("Feminino", "Masculino") {
+						name = "Gênero"
+						help = "É necessário selecionar o gênero para que as flexões sejam feitas corretamente"
+						atomic = true 
+					},
+					+[profissao] : String {
+						name = "Informe a profissão do impetrante"
+					},
+					+[renda] : Currency {
+						name = "Insira a renda do impetrante"
+					},
+					+|vectContratos| : Vector[Struct] {
+						name = "Dados do contrato deste impetrante"
+						help = "Lembre-se: Insira as informações levando em consideração a data dos contratos, preecha do mais antigo ao mais recente, seguindo a ordem das operações"
+						fields {
+							+[numero] : String {
+								name = "Digite o número do contrato"
+							},
+							+[data] : Date {
+								name = "Data de concessão"
+							},
+							+[valor] : Currency {
+								name = "Valor do contrato"
+							},
+							+[prestacoes] : Integer {
+								name = "Quantidade de prestações"
+							},
+							+[valorDaPrestacao] : Currency {
+								name = "Valor de cada prestação"
+							}
+						}
+						loaders {
+							[data].mask = "[...," & today() & "]"
+						}
+					}
+				}
+			},
+			-<contadorDeNumeroDeContratos> : List[Numeros] {
+				atomic = true
+			},
+			-|vectSenderAutorJusticaGratuita| : Vector[Struct] {
+				id = |nome|
+				fields {
+					-|nome| : Vector[String],
+					-|profissao| : Vector[String],
+					-|renda| : Vector[Currency]
+				}
+			},
+			//ESTRUTURAS
+			+<strDadosDoProcesso> : Struct {
+				name = "Dados do processo"
+				fields {
+					+[numero] : String where ("\d\d\d\d\d\d\d-\d\d.\d\d\d\d.\d.\d\d.\d\d\d\d") {
+						name = "Número do processo"
+					},
+					+[justicaEstadualOuFederal] : List ("Justiça Comum", "Justiça Federal") {
+						name = "Justiça Estadual ou Federal"
+						request = "O mandado de segurança foi impetrado na justiça comum ou federal?"
+						atomic = true
+					},
+					+[ehVaraOuJuizado] : List ("Juizado especial", "Vara") {
+						name = "A ação foi proposta em vara federal ou juizado especial federal?"
+						atomic = true
+					},
+					&[vara] : Integer where ("\d\r") {
+						name = "Vara"
+					},
+					+[comarca] : String {
+						name = "Comarca"
+					},
+					+[uf] : List [*Uf] {
+						name = "Estado de tramitação"
+						atomic = true
+					}
+				}
+			},
+			+<strPreliminares> : Struct {
+				name = "Preliminares"
+				fields {
+					+[negativaConcessao] : Boolean {
+						name = "Trata-se de negativa concessão de linha de crédito por parte da Caixa Econômica Federal?"
+					},
+					if ([negativaConcessao]) {
+						+[strAvalista] : Struct {
+							name = "Dados do avalista"
+							fields {
+								+[nome] : String {
+									name = "Informe o nome do avalista"
+								},
+								+[genero] : List ("Masculino", "Feminino") {
+									name = "Selecione o gênero do avalista"
+									atomic = true
+									help = "É necessário selecionar o gênero para que as flexões sejam feitas corretamente"
+								}
+							}
+						}
+					},
+					+|vectAutorJusticaGratuita| : Vector[Struct] {
+						name = "Selecione os impetrantes que seram apontados na preliminar de impugnação ao pedido de gratuidade de justiça"
+						id = |nome|
+						fields {
+							+|nome| : Vector[String] {
+								name = "Nome do impetrante"
+							},
+							-|profissao| : Vector[String],
+							-|renda| : Vector[Currency]
+						}
+					},
+					+[valorDaCausa] : Boolean {
+						name = "Haverá impugnação ao valor da causa?"
+					}
+				}
+			},
+			+<strFatos> : Struct {
+				name = "Breve Histórico"
+				fields {
+					+[valor] : Currency {
+						name = "Valor atribuído à causa pela parte impetrante"
+					}
+				}
+			},
+			+<strMerito> : Struct {
+				name = "Mérito"
+				fields {
+					+[strConvenente] : Struct {
+						name = "Dados da convenente"
+						fields {
+							+[numero] : String {
+								name = "Número da convenente"
+								help = "Exemplo: \"26075-4\""
+							},
+							+[nome] : String {
+								name = "Denominacao da convenente"
+								help = "Exemplo: \"GOIÁS GOVERNO DO ESTADO\""
+							},
+							+[meses] : Integer {
+								name = "Quantidade de meses dos ativos"
+								help = "Exemplo \"ATIVOS de 96 meses\""
+							}
+						}
+					}
+				}
+			},
+			+<strRequerimento> : Struct {
+				name = "Dados do requerimento processual"
+				fields {
+					+[litiganciaDeMaFe] : Text where ("Formatting") {
+						name = "Tópico 4.2 - segundo parágrafo"
+						request = "Insira o texto, relacionado ao quadro anexado no tópico 4.2, que será impresso no seguinte trecho: \" (...) Outrossim, como é sabido, o que pretende a Parte Adversa é ter seus contratos revisados, pasmem, logo após de tê-los contratado, e nisso, há além da litigância de má-fé e o rompimento da boa-fé contratual, a inadequação da via eleita. <b>Conforme os dados colacionados, repare que do 4º (quarto) contrato em diante, não há sequer 6 parcelas pagas</b>\"."
+						help = "O texto aqui inserido será impresso apenas na parte do texto marcado em negrito"
+						default = "Conforme os dados colacionados, repare que do 4º (quarto) contrato em diante, não há sequer 6 parcelas pagas"
+					}
+				}
+			},
+			// Atualizar
+			+<strDocumentos> : Struct {
+				name = "Documentos"
+				fields {
+					+[documentos] : List ("Procuração", "Substabelecimento", "Contrato", "Documentos dos autos") {
+						name = "Documentos"
+						request = "Selecione os documentos que deseja juntar"
+						atomic = false
+					},
+					+[incluirDoc] : Boolean {
+						name = "Deseja incluir algum outros documento?"
+					},
+					if ([incluirDoc]) {
+						+|doc| : Vector[String] {
+							name = "Documento a ser incluído"
+						}
+					}
+				}
+			},
+			+<strEncerramento> : Struct {
+				name = "Encerramento"
+				fields {
+					+[dataPeticao] : Date {
+						name = "Data de assinatura"
+						default = today()
+					},
+					+[localAssinatura] : String {
+						name = "Local de assinatura"
+						request = "Cidade de assinatura"
+					},
+					+[estado] : List[*Uf] {
+						name = "Estado"
+						request = "Estado de assinatura"
+						atomic = true
+					},
+					&[listaDeAdvogados] : List[ListaAdvogados_JacoCoelho] {
+						name = "Advogado subscritor"
+						request = "Selecione o advogado que assinará a petição"
+						atomic = false
+						default = "Jacó Carlos Silva Coelho"
+					}
+				}
+			}
 		} 
 	} 
 	head { 
-		title = "..." 
+		title = null
+		operations {
+			header("logo_jacoCoelho.png", "center", "70%"),
+			footer("foot_jacoCoelho.png", "center","155mm"),
+			setDocumentName("Resposta ao Mandado de Segurança - " & <strDadosDoProcesso.numero>) 
+		}
  	} 
  	body {
+ 		declarations {
+ 			branch[BRC_Estilo] {
+				declarations {
+					branch[CSS_Titulo] {
+						operations {
+							print "<style>
+								h1, h2, h3, h4 {
+									text-align: center;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Paragrafo] {
+						operations {
+							print "<style>
+								.paragrafo {
+									text-indent: 30mm;
+									margin: 0pt;
+									padding: 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Citacao] {
+						operations {
+							print "<style>
+								.citation {
+									margin: 0pt 0pt 0pt 40mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Lista] {
+						operations {
+							print "<style>
+								ul, ol, li {
+									margin: 0pt 0pt 0pt 60mm;
+									padding: 0pt 0pt 0pt 0pt
+								}
+								.print-content li {
+									margin: 0pt 0pt 0pt 0pt;
+									padding: 0pt 0pt 0pt 0pt
+								}
+							</style>"
+						}
+					},
+					branch[CSS_Tabela] {
+						operations {
+							print "<style>
+								table.acordao,
+								table.acordao tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.acordao td {
+									border: 1px solid black;
+									text-align: justify;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+
+								table.advsAssinam,
+								table.advsAssinam tr {
+									border: none;
+									padding: 0px;
+									width: 100%
+								}
+								table.advsAssinam td {
+									border: none;
+									vertical-align: top;
+									font-size: 12pt;
+									padding: 0pt 1.9mm 0pt 1.9mm;
+									width: 50%
+								}
+							</style>"
+						}
+					}
+				}
+				operations {
+					use CSS_Titulo,
+					use CSS_Paragrafo,
+					use CSS_Citacao,
+					use CSS_Lista,
+					use CSS_Tabela
+				}
+			},
+			branch[BRC_Logica] {
+				operations {
+					foreach(<i> IN [0: |vectAutor|.size()-1]) {
+						|vectSenderAutorJusticaGratuita{<i>}.nome| = <vectAutor{<i>}.nome>,
+						|vectSenderAutorJusticaGratuita{<i>}.profissao| = <vectAutor{<i>}.profissao>,
+						|vectSenderAutorJusticaGratuita{<i>}.renda| = <vectAutor{<i>}.renda>
+					},
+					if (|vectAutor|.size() > 1) {
+						foreach(<autor> IN |strPreliminares.vectAutorJusticaGratuita|) {
+							|vectSenderAutorJusticaGratuita|.select(|autor.nome|, "Selecione o(s) impetrante(s) ao(s) qual(is) recairá(ão) a impugnação ao pedido de gratuidade de justiça")
+						}
+					}
+					else {
+						|strPreliminares.vectAutorJusticaGratuita|.mandatory = "-"
+					}
+				}
+			},
+ 			branch[BRC_Enderecamento] {
+				operations {
+					if (<strDadosDoProcesso.justicaEstadualOuFederal> == "Justiça Federal") {
+						print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial", printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial Federal ", "do Juizado Especial Federal "), printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara Federal ", "da Vara Federal ")) & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center")
+					}
+					else {
+						print align(bold("Ao Juízo " & printIf(<strDadosDoProcesso.ehVaraOuJuizado> == "Juizado especial", printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "do "  & <strDadosDoProcesso.vara> & "º Juizado Especial ", "do Juizado Especial "), printIf(<strDadosDoProcesso.vara>.isNotEmpty(), "da " & <strDadosDoProcesso.vara> & "ª Vara ", "da Vara ")) & "da Comarca de " & firstUpper(<strDadosDoProcesso.comarca>) & "/" & <strDadosDoProcesso.uf>.getByKey("Sigla") & "."), "center")
+					},
+					print #bl#,
+					print #bl#,
+					print #bl#,
+					print "Protocolo n.:\t\t" & <strDadosDoProcesso.numero> & "\b",
+					print "Parte Autora:\t\t" & |vectAutor|.vect2str("%f, %s, %p e %l") & "\b",
+					print "Parte Ré:\t\t\tCaixa Econômica Federal",
+					print #bl#,
+					print #bl#
+				}
+			},
+			branch[BRC_Qualificacao] {
+				operations {
+					print #parag# & bold("Caixa Econômica Federal,") & " Instituição financeira sob a forma de empresa pública, dotada de personalidade jurídica de direito privado, criada pelo Decreto- Lei n.º 759, de 12 de Agosto de 1969, regendo-se atualmente através de seu Estatuto aprovado pelo Decreto nº 5.056/2004, de 29 de abril de 2004, arquivado na Junta Comercial do Distrito Federal, inscrita no CNPJMF sob o n.º 00. 360.305/0001-04, com sede no SBS, Quadra 04, Lote 34, Brasília-DF, por sua Gerência Jurídica Regional - JURIR/GO, situada na Rua 11, n.º 250 – 11º andar – Centro - Goiânia/GO, CEP: 74.015-170, por seus advogados que esta subscrevem, com endereço profissional constante do rodapé da presente, onde o advogado indicado ao final recebe as intimações, vem, à presença de Vossa Excelência, para apresentar " & bold("Resposta ao Mandado de Segurança em Forma de Contestação,") & ", movida por " & |vectAutor|.vect2str("<b>%f</b>, <b>%s</b>, <b>%p</b> e <b>%l</b>") & ", já " & |vectAutor|.grammar("qualificado") & " na inicial, fazendo-o pelos fatos e fundamentos que se seguem." & #bl#
+				}
+			},
+			branch[BRC_Preliminares] {
+				declarations {
+					-<cont> : Integer {default = 1},
+					branch[BRC_IncompetenciaJusticaComum] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Da Incompetência Absoluta da Justiça Comum - Ação Movida em Face da Caixa Econômica Federal"), "center") & #bl#,
+							print #parag# & "Conforme se extrai dos presentes autos, " & printIf(|vectAutor|.size() > 1, "as partes impetrantes incluíram", "a parte impetrante incluiu") & " no polo passivo a Caixa Econômica Federal." & #bl#,
+							print #parag# & "Destarte, a Justiça Comum Estadual é incompetente para apreciar o mérito da presente demanda, por se tratar a impetrado de empresa pública da União, nos termos da norma do artigo 109, I, da Constituição Federal." & #bl#,
+							print #parag# & "Dessa forma, requer o reconhecimento da incompetência absoluta deste Juízo; determinando a remessa dos autos à Justiça Federal, em atenção aos arts. 64, §1º e 114, do CPC; 109, I, da CF." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_NaoCabimentoDeMandadoDeSeguranca] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Não Cabimento do Mandado de Segurança - Da Inexistência de Direito Líquido e Certo"), "center") & #bl#,
+							print #parag# & "Conforme a Constituição Federal, a existência de direito líquido e certo é especial condição da ação de segurança, entendendo-se condição da ação como requisito inafastável para cabimento e, consequentemente para a obtenção de uma sentença favorável. Assim, não basta à existência do direito invocado, é necessário que seja líquido e certo." & #bl#,
+							print #parag# & "Contudo, ainda que tenha a parte impetrante afirmado que houve quitação do débito da empresa OPE Construções a qual possui como avalista " & printIf(<strPreliminares.strAvalista.genero> == "Masculino", "o Sr. ", "a Sra. ") & <strPreliminares.strAvalista.nome>  & ", " & printIf(<strPreliminares.strAvalista.genero> == "Masculino", "único proprietário", "única proprietária") & "  e representante legal daquela, cumpre salientar que a concessão de linha de crédito aos clientes é ato discricionário da instituição financeira resguardando por lei (Código Civil - art. 421)." & #bl#,
+							print #parag# & "Portanto, pelos fatos expostos, evidentemente será denegada a ordem em virtude da falta de atendimento dos pressupostos constitucionais e legais exigidos para a espécie. Isto porque, verifica-se o descabimento do presente " & it("mandamus") & ", face ao regramento insculpido na Lei nº 12.016/09 e na Carta Magna, no art. 5º, LXIX:" & #bl#,
+							print citation(bold("Art. 1o  Lei nº 12.016/09") & ": Conceder-se-á mandado de segurança para proteger direito líquido e certo, não amparado por " & bold("habeas corpus") & " ou " & bold("habeas data") & ", sempre que, ilegalmente ou com abuso de poder, qualquer pessoa física ou jurídica sofrer violação ou houver justo receio de sofrê-la por parte de autoridade, seja de que categoria for e sejam quais forem as funções que exerça." & #bl# & bold("Art.5º da CF") &  ":" & #bl# & "(...)" & #bl# & bold("LXIX") & " - conceder-se-á mandado de segurança para proteger direito líquido e certo, não amparado por habeas corpus ou habeas data, quando o responsável pela ilegalidade ou abuso de poder for autoridade pública ou agente de pessoa jurídica no exercício de atribuições do Poder Público;") & #bl#,
+							print #parag# & "Nesta linha, o i. doutrinador Hely Lopes Meirelles ensina" & footNote("\"Mandado de Segurança, Ação Popular, Ação Civil Pública, Mandado de Injunção, Habeas Data\", 14ª Edição atualizada por ARNOLDO WALD, Editora Malheiros, 1992, págs. 25/27") & ":" & #bl#,
+							print citation ("Direito líquido e certo é o que se apresenta manifesto na sua existência, delimitado na sua extensão e apto a ser exercitado no momento de impetração. Por outras palavras, o direito invocado, para ser amparável por mandado de segurança, há de vir expresso em norma legal e trazer em si todos os requisitos e condições de sua aplicação ao impetrante: se sua existência for duvidosa; " & bold("se sua extensão ainda não estiver delimitada; se seu exercício depender de situações e fatos ainda indeterminados, não rende ensejo à segurança, embora possa ser defendido por outros meios judiciais") & "." & #bl# & "Quando a lei alude a direito líquido e certo, está exigindo que esse direito se apresente com todos os requisitos para seu reconhecimento e exercício no momento da impetração." & bold(" Em última análise, direito líquido e certo é direito comprovado de plano. Se depender de comprovação posterior, não é líquido nem certo, para fins de segurança") & "." & #bl# & "Por se exigir situações e fatos comprovados de plano é que não há instrução probatória no mandado de segurança. O que se exige é prova pré-constituída das situações e fatos que embasam o direito invocado pelo impetrante. (g.n)") & #bl#,
+							print #parag# & "Pelo conceito acima colacionado e a posição doutrinária majoritária, é pacífico o entendimento de que o Mandado de Segurança pressupõe a demonstração, de plano, do alegado direito e a inexistência de incerteza a respeito dos fatos. Haverá direito líquido e certo se a regra jurídica que incidir sobre os fatos incontestáveis configurar um direito da parte." & #bl#,
+							print #parag# & "Em suma, o direito líquido e certo é condição da ação do mandado de segurança. Nada tem com o mérito. Quem não prova com a inicial o que diz, não tem direito líquido e certo. Deve ser então, julgado carecedor da ação de segurança – Art. 485, III, VI do CPC." & #bl#,
+							print #parag# & "Dessa forma, em face de tudo quanto foi exposto, requer a extinção do feito sem resolução do mérito ante a inépcia da petição inicial e a falta de interesse processual nos termos dos artigos 337, IV e XI, c/c art. 330, I, II, § 1º, I e art. 17, todos do CPC." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_ImpugnacaoAoPedidoDeGratuidadeDeJustica] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Ausência de Comprovação de Insuficiência de Recursos - Impugnação ao Pedido de Gratuidade de Justiça"), "center") & #bl#,
+							print #parag# & "A parte impetrante a insurge com a presente demanda alegando que não possui condições financeiras para realizar o pagamento das custas processuais. Contudo, apenas alega não ter capacidade de suportar as custas e despesas processuais, sem comprovar insuficiência de recursos para tal, nos termos do art. 98, CPC." & #bl#,
+							print #parag# & "É consabido que a declaração de pobreza gera presunção relativa acerca da necessidade da assistência gratuita, ou seja, " & it("juris tantum") & footNote("(AgRg no AREsp n. 372.220/RJ, Relator Ministro Ricardo Villas Bôas Cueva, Terceira Turma, julgado em 3/4/2014, DJe 15/4/2014).") & ", podendo o Julgador verificar outros elementos constantes do processo para decidir acerca do deferimento ou não do benefício, uma vez que pode decorrer dos autos a demonstração de que a parte tem condições de arcar com as despesas processuais, o que impediria a concessão deste pedido." & #bl#,
+							print #parag# & "Não obstante, ",
+							if (|vectAutor|.size() > 1) {
+								foreach(<autor> IN |strPreliminares.vectAutorJusticaGratuita|) where (separator = "%f, %s, %p, e %l,") {
+									print "a parte impetrante" & <autor.nome> & " é " & lowercase(<autor.profissao>) & " e perquiri renda superior a R$" & <autor.renda> & " (" & expandedCurrency(<autor.renda>) & ")"
+								}
+							}
+							else {
+								print "a parte impetrante é ",
+								foreach(<autor> IN |vectAutor|) where (separator = "%f, %s, %p, e %l,") {
+									print lowercase(<autor.profissao>) & " e perquiri renda superior a R$ " & <autor.renda> & " (" & expandedCurrency(<autor.renda>) & ")"
+								}
+							},
+							print " nada impedindo que ante uma impossibilidade de arcar com o valor à vista, seja deferido o parcelamento. Nestes termos, não há nos autos nenhum motivo que embase o deferimento da gratuidade da justiça, tendo em vista que não há comprovação alguma de que " & printIf(|strPreliminares.vectAutorJusticaGratuita|.size() > 1, "as partes impetrantes não podem suportar", "a parte impetrante não pode suportar") & " o pagamento das custas processuais." & #bl#,
+							print #parag# & "A comprovação desta condição de hipossuficiência se mostra imprescindível, seja para atender a dispositivo legal, seja para evitar que o Estado seja onerado indevidamente, seja ainda para coibir o ajuizamento sem medida de demandas sob manto do “grátis”." & #bl#,
+							print #parag# & "Ademais, a parte impetrante não provou a realização de despesas que justificassem o deferimento do benefício pleiteado e, estando representada por advogado particular, é necessária a demonstração da incapacidade financeira. Outrossim, em atenção ao disposto no art. 13, CPC, caso o Impetrante não possa suportar todas as despesas, deverá comprovar que não pode ao menos ratear os valores." & #bl#,
+							print #parag# & "Diante do exposto, impugna o pedido de gratuidade da justiça à parte impetrante, requerendo seja intimada a comprovar nos autos sua condição de hipossuficiência para pagar integral, ou parcialmente, as custas e despesas processuais em eventual interposição de recurso." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_ImpugnacaoAoValorDaCausa] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Impugnação ao Valor da Causa"), "center") & #bl#,
+							print #parag# & "O Art. 293, CPC prevê que \"réu poderá impugnar, em preliminar da contestação, o valor atribuído à causa pelo impetrante, sob pena de preclusão, e o juiz decidirá a respeito, impondo, se for o caso, a complementação das custas\"." & #bl#,
+							print #parag# & "Nos presentes autos " & printIf(|vectAutor|.size() > 1, "as partes impetrantes atribuem", "a parte impetrante atribui") & " à causa o valor de R$ " & <strFatos.valor> & " (" & expandedCurrency(<strFatos.valor>) & "), contudo, considerando todos os empréstimo contraídos com a impetrada, a pretensão inicial é totalmente diversa do valor atribuído à causa, em inobservância do Art. 292, inciso V do CPC." & #bl#,
+							print #parag# & "Dessa forma, resta impugnado o valor atribuído à causa, requerendo desde já seja determinado que a parte impetrante emende a petição inicial para adequação do valor, para os devidos fins." & #bl#,
+							<cont> = <cont> + 1
+						}
+					}
+				}
+				operations {
+					print align(bold(<contTopic> & " Preliminarmente"), "center") & #bl#,
+					if (<strDadosDoProcesso.justicaEstadualOuFederal> == "Justiça Comum") {
+						use BRC_IncompetenciaJusticaComum
+					},
+					if (<strPreliminares.negativaConcessao>) {
+						use BRC_NaoCabimentoDeMandadoDeSeguranca
+					},
+					use BRC_ImpugnacaoAoPedidoDeGratuidadeDeJustica,
+					if (<strPreliminares.valorDaCausa>) {
+						use BRC_ImpugnacaoAoValorDaCausa
+					},
+					print #bl#,
+					<contTopic> = <contTopic> + 1
+				}
+			},
+			branch[BRC_BreveHistorico] {
+				operations {
+					print align(bold(<contTopic> & " Breve Histórico"), "center") & #bl#,
+					print #parag# & "Em apertada síntese, " & printIf(|vectAutor|.size() > 1, "requerem as partes impetrantes", "requer a parte impetrante") & " deste Douto Juízo a redução do desconto em folha para o patamar de 30% (trinta) por cento conforme determina a Lei nº 16.898/2010, atribuindo à causa o valor de R$ " & <strFatos.valor> & " (" & expandedCurrency(<strFatos.valor>) & "). Contudo, razão não " & printIf(|vectAutor|.size() > 1, "lhes", "lhe") & " assiste, conforme será exposto." & #bl#,
+					<contTopic> = <contTopic> + 1
+				}
+			},
+			branch[BRC_Merito] {
+				declarations {
+					-<cont> : Integer {default = 1},
+					branch[BRC_ClausulasContratuais] {
+						declarations {
+							-<numeroDeAutores> : Integer {default = 1},
+							-<numeroDeContratos> : Integer {default = 1}
+						}
+						operations {
+							<numeroDeAutores> = |vectAutor|.size(),
+							<numeroDeContratos> = |vectAutor{<numeroDeAutores>}.vectContratos|.size(),
+							<contadorDeNumeroDeContratos> = <numeroDeContratos>, 
+							print align(bold(<contTopic> & "." & <cont> & " Das Cláusulas Contratuais e da Realidade dos Fatos"), "center") & #bl#,
+							print #parag# & "Prefacialmente, destaca-se que as operações em referência consistem na concessão de empréstimos sob consignação em folha de pagamento." & #bl#,
+							if (|vectAutor|.size() < 1) {
+								foreach(<autor> IN |vectAutor|) {
+									print #parag# & "Com referência à CAIXA, a parte impetrante celebrou " & <numeroDeContratos> & " (" & expandedNumber(<numeroDeContratos>) & ") " & printIf(<numeroDeContratos> > 1, "contratos", "contrato") & " nº ",
+									foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f, %s, %p, e %l.") {
+										print <contrato.numero>
+									},
+									if (<numeroDeContratos> == 1) {
+										print #parag# & "A operação foi concedida em ",
+										foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f, %s, %p, %l.\b") {
+											print <contrato.data> & ", no valor de R$ " & <contrato.valor> & " (" & expandedCurrency(<contrato.valor>) & "), taxa de juros prefixada de 1,00% ao mês, a ser paga em " & <contrato.prestacoes> & " prestações mensais (amortização + juros) calculadas pelo Sistema Francês de Amortização - Tabela PRICE no valor de R$ " & <contrato.valorDaPrestacao> & " (" & expandedCurrency(<contrato.valorDaPrestacao>) & ")" 
+										}
+									}
+									else {
+										foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f.\b%s.\b%p.\b%l\b") {
+											<contrato.numeroDoContrato> = <numeroDeContratos>,
+											print #parag# & "A" & <contrato.numeroDoContrato>.getByKey("Print") & " operação foi concedida em " & <contrato.data> & ", no valor de R$ " & <contrato.valor> & " (" & expandedCurrency(<contrato.valor>) & "), taxa de juros prefixada de 1,00% ao mês, a ser paga em " & <contrato.prestacoes> & " prestações mensais (amortização + juros) calculadas pelo Sistema Francês de Amortização - Tabela PRICE no valor de R$ " & <contrato.valorDaPrestacao> & " (" & expandedCurrency(<contrato.valorDaPrestacao>) & ").",
+											<numeroDeContratos> = <numeroDeContratos> +1
+										}
+									}
+								}
+							}
+							else {
+								foreach(<autor> IN |vectAutor|) {
+									print #parag# & "Com referência à CAIXA, a parte impetrante " & <autor.nome> & " celebrou " & <numeroDeContratos> & " (" & expandedNumber(<numeroDeContratos>) & ") " & printIf(<numeroDeContratos> > 1, "contratos", "contrato") & " nº ",
+									foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f, %s, %p, e %l.") {
+										print <contrato.numero>
+									},
+									if (<numeroDeContratos> == 1) {
+										print #parag# & "A operação foi concedida em ",
+										foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f, %s, %p, %l.\b") {
+											print <contrato.data> & ", no valor de R$ " & <contrato.valor> & " (" & expandedCurrency(<contrato.valor>) & "), taxa de juros prefixada de 1,00% ao mês, a ser paga em " & <contrato.prestacoes> & " prestações mensais (amortização + juros) calculadas pelo Sistema Francês de Amortização - Tabela PRICE no valor de R$ " & <contrato.valorDaPrestacao> & " (" & expandedCurrency(<contrato.valorDaPrestacao>) & ")" 
+										}
+									}
+									else {
+										foreach(<contrato> IN |autor.vectContratos|) where (separator = "%f.\b%s.\b%p.\b%l.\b") {
+											<contrato.numeroDoContrato> = <numeroDeContratos>,
+											print #parag# & "A" & <contrato.numeroDoContrato>.getByKey("Print") & " operação foi concedida em " & <contrato.data>  & ", no valor de R$ " & <contrato.valor> & " (" & expandedCurrency(<contrato.valor>) & "), taxa de juros prefixada de 1,00% ao mês, a ser paga em " & <contrato.prestacoes> & " prestações mensais (amortização + juros) calculadas pelo Sistema Francês de Amortização - Tabela PRICE no valor de R$ " & <contrato.valorDaPrestacao> & " (" & expandedCurrency(<contrato.valorDaPrestacao>) & ").",
+											<numeroDeContratos> = <numeroDeContratos> +1
+										}
+									}
+								}
+							},
+							print #parag# & "Sobre os empréstimos consignados, o valor máximo para contratação é calculado em função da capacidade de pagamento do tomador, de forma que o valor da prestação não ultrapasse 30% de sua remuneração líquida, tendo como prazo máximo de contratação com a CONVENENTE " & <strMerito.strConvenente.numero> & " " & <strMerito.strConvenente.nome> & " - ATIVOS de " & <strMerito.strConvenente.meses> & " meses." & #bl#,
+							print #parag# & "A operação de empréstimo Consignado CAIXA consiste na concessão de empréstimos sob consignação em folha de pagamento. Destina-se a empregados/servidores de empresas privadas, entidades sem fins lucrativos, entidades sindicais, União, Estados, DF ou Municípios, Autarquias, Fundações, Empresas Públicas ou Sociedades de Economia Mista, que possuem convênio formalizado com a CAIXA, para averbação das prestações na folha de pagamento do beneficiário do empréstimo." & #bl#,
+							print #parag# & "A contratação é formalizada por meio da assinatura do Contrato de empréstimo Consignação com a CAIXA. Após liberação do valor ao cliente e averbação do contrato, compete à convenente repassar à CAIXA mensalmente, na data do vencimento da prestação, os valores debitados em folha para liquidação das parcelas." & #bl#,
+							print #parag# & "A apropriação dos valores repassados se dá de forma automática, por meio do processamento do extrato da convenente, que se responsabiliza pela inserção correta dos dados dos contratos a ela vinculados." & #bl#,
+							print #parag# & "Portanto, considerando os fatos acima o desconto em folha da Caixa Econômica Federal deve permanecer até que se finde o contrato, pois no momento de sua concessão foram atendidas todas as exigências referentes as normas de contratação dentro dos 30% da renda do cliente e ainda observado se havia excesso de comprometimento financeiro." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_InexistenciaDeViciosEFalhasNoServico] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Da Inexistência de Vícios e Falhas no Serviço Prestado - Das Cláusulas Contratuais"), "center") & #bl#,
+							print #parag# & "Em que pese o esforço de argumentação da parte impetrante, não há como prosperar o presente pleito, haja vista que a conduta da parte impetrado está respaldada na mais plena legalidade. No entanto, em homenagem aos princípios do contraditório e da ampla defesa, vem a parte impetrado trazer aos autos a realidade dos acontecimentos, com o que Vossa Excelência, indubitavelmente, concluirá pela total improcedência dos pedidos requeridos pela parte impetrante." & #bl#,
+							print #parag# & "Adentrando no mérito da questão, não há qualquer razão a assistir à parte impetrante. O contrato em questão, elaborado dentro das normas vigentes, visa atender às partes contratantes. É fato que o pretendente ao financiamento somente aceita contratar se o quiser, dentro da sua vontade livre e consciente." & #bl#,
+							print #parag# & it("In casu") & ", a parte impetrada não impôs " & printIf(|vectAutor|.size() > 1, "às partes impetrantes a celebração do contrato referido. " & |vectAutor|.grammar("Este") & ", por sua vez, poderiam ter optado", "à parte impetrante a celebração do contrato referido. " & |vectAutor|.grammar("Este") & ", por sua vez, poderia ter optado") & " por outro banco cujas cláusulas estivessem dentro de suas possibilidades, ou cujo agente financeiro fosse do seu agrado." & #bl#,
+							print #parag# & "Os presentes contratos foram firmados tendo como elemento decisivo o consentimento livre " &printIf(|vectAutor|.size() > 1, "das partes impetrantes" ,"da parte impetrante") & ". Nesse diapasão, não há como também se afastar o princípio " & it("pacta sunt servanda") & ", cuja aplicação faz-se necessária em qualquer contrato perfeito e acabado." & #bl#,
+							print #parag# & "Assim, é de se concluir que não há ilegalidade ou abusividade no contrato firmado com " & |vectAutor|.grammar("o impetrante") & ", destacando-se, ainda, que " & |vectAutor|.grammar("ele") & " teve ciência previamente de todos os termos do contrato, bem como teve a liberdade de escolher se iria contratar ou não, com que instituição contratar, sob que forma e quais os termos dos contratos." & #bl#,
+							print #parag# & "O caso " & it("sub judice") & " trata-se de um contrato livremente acordado entre partes capazes, com objeto lícito, forma prescrita ou não defesa em lei, sendo, portanto, um ato jurídico perfeito, o qual é protegido pela Magna Carta em seu art. 5º, inc. XXXVI, defeso de modificações quer por vontade unilateral de qualquer das partes, do magistrado ou da própria lei. Portanto, " & printIf(|vectAutor|.size() > 1, "as partes impetrantes sabiam", "a parte impetrante sabia") & " previamente à assinatura do contrato de todas as obrigações dele decorrentes e, uma vez que as aceitou, não " & printIf(|vectAutor|.size() > 1, "podem", "pode") & " eximir-se de cumprir com as suas obrigações." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_AusenciaDeIncontestabilidade] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Impugnação - Documento Acostado pelo Impetrante - Ausência de Incontestabilidade"), "center") & #bl#,
+							print #parag# & "Os documentos juntados " & printIf(|vectAutor|.size() > 1, "pelas partes impetrantes", "pela parte impetrante") & " são em cópia simples e, por não assegurarem sua autenticidade, devem ser retirados do processo, conforme o disposto no Art. 425, IV do CPC." & #bl#,
+							<cont> = <cont> + 1
+						}
+					}
+				}
+				operations {
+					print align(bold(<contTopic> & " Mérito"), "center") & #bl#,
+					print "Embora não se admita a superação das preliminares suscitadas, é necessário, pelos princípios da eventualidade e da concentração, adentrar ao mérito, segundo os fundamentos a seguir." & #bl#,
+					use BRC_ClausulasContratuais,
+					use BRC_InexistenciaDeViciosEFalhasNoServico,
+					use BRC_AusenciaDeIncontestabilidade,
+					print #bl#,
+					<contTopic> = <contTopic> + 1
+				}
+			},
+			branch[BRC_RequerimentoProcessual] {
+				declarations {
+					-<cont> : Integer {default = 1},
+					branch[BRC_NaoCabimentoTutelaDeUrgencia] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Do Não Cabimento do Pedido de Tutela de Urgência"), "center") & #bl#,
+							print #parag# & "O art. 7º, inciso III da Lei nº 12.016/09 prescreve que o juiz no despacho inicial ordenará \"" & it("que se suspenda o ato que deu motivo ao pedido, " & bold("quando houver fundamento relevante e do ato impugnado puder resultar a ineficácia da medida") & ", caso seja finalmente deferida, sendo facultado exigir do impetrante caução, fiança ou depósito, com o objetivo de assegurar o ressarcimento à pessoa jurídica\"") & "." & #bl#,
+							print #parag# & "Já o artigo 300 do CPC estabelece que \"" & it("a tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo\"") & "." & #bl#,
+							print #parag# & "Assim, diante dos artigos acima transcritos, para que seja concedida a liminar pretendida, " & printIf(|vectAutor|.size() > 1, "deverão as partes impetrantes", "deverá a parte impetrante") & " comprovar os requisitos necessários para a sua concessão, quais sejam, perigo de dano ou o risco ao resultado útil do processo, fundamento relevante e possibilidade de ineficácia da medida, o que não foi demonstrado a ponto de ensejar a antecipação da tutela." & #bl#,
+							print #parag# & printIf(|vectAutor|.size() > 1, "As partes impetrantes não demonstraram", "A parte impetrante não demonstrou") & " nenhum dos requisitos acima mencionados, até porque conforme narrado nos presentes autos, a concessão de linha de crédito é ato administrativo discricionário da instituição financeira." & #bl#,
+							print #parag# & "Ademais, se a tutela pretendida for antecipada, ela será irreversível, não podendo ser concedida, consoante disposto no artigo 300, § 3º, pois patente que seria totalmente inviável a aplicação do disposto no artigo 302 desta Lei, culminando no periculum in mora reverso, fator impeditivo à pretensão antecipatória." & #bl#,
+							print #parag# & "Na verdade, o pedido de antecipação da tutela é de sorte o próprio mérito e não pode ser decidido perfunctoriamente, sob pena de cerceamento de defesa e ofensa à segurança jurídica, razão pela qual requer seja indeferido o pedido de antecipação dos efeitos da tutela, por ausência dos requisitos necessários para tal concessão." & #bl#,
+							print #parag# & "Assim sendo, não havendo comprovação de qualquer hipótese elencada nos artigos acima mencionados que possam ensejar a concessão da tutela cautelar, requer desde logo seu indeferimento." & #bl#,
+							<cont> = <cont> + 1
+						}
+					},
+					branch[BRC_IntervencaoMinimaInadequacaoDaViaEleitaELitiganciaDeMaFe] {
+						operations {
+							print align(bold(<contTopic> & "." & <cont> & " Não Cabimento da Antecipação dos Efeitos da tutela face à Lei da Liberdade Econômica, do Princípio da Intervenção Mínima, Inadequação da Via Eleita e Litigância de má-fé"), "center") & #bl#,
+							print #parag# & "Nota-se Excelência, conforme documentos acostados aos autos, pela parte Adversa, que há flagrante litigância de má-fé e deslealdade contratual, posto que a maioria dos empréstimos consignados foram realizados recentemente. O quadro a seguir foi extraído da peça vestibular mandamental, senão vejamos:" & #bl#,
+							attach("Quadro.png", "center", null, null, "14cm"),
+							print #bl#,
+							print #parag# & "Outrossim, como é sabido, o que pretende a Parte Adversa é ter seus contratos revisados, pasmem, logo após de tê-los contratado, e nisso, há além da litigância de má-fé e o rompimento da boa-fé contratual, a inadequação da via eleita. " & trim(firstUpper(<strRequerimento.litiganciaDeMaFe>)) & "." & #bl#,
+							print #parag# & "Não bastassem os motivos de fato e de direito que impedem a revisão contratual por meio da inadequação da via eleita, tal qual é o presente Mandado de Segurança, há outro óbice, o princípio da intervenção mínima e a excepcionalidade da revisão contratual. Nesse sentido, existem os diversos dispositivos legais que vedam a concessão do pedido de antecipação dos efeitos de tutela e no mérito a concessão da segurança é impossível juridicamente, conforme disposto no Código Civil, segue:" & #bl#,
+							print citation(" Art. 421.  A liberdade contratual será exercida nos limites da função social do contrato. (Redação dada pela Lei nº 13.874, de 2019)" & #bl# & "Parágrafo único. " &  bold(underline("Nas relações contratuais privadas, prevalecerão o princípio da intervenção mínima e a excepcionalidade da revisão contratual.")) & " (Incluído pela Lei nº 13.874, de 2019)" & #bl# & "Art. 421-A.  Os contratos civis e empresariais presumem-se paritários e simétricos até a presença de elementos concretos que justifiquem o afastamento dessa presunção, ressalvados os regimes jurídicos previstos em leis especiais, garantido também que: (Incluído pela Lei nº 13.874, de 2019)" & #bl# & "I - as partes negociantes poderão estabelecer parâmetros objetivos para a interpretação das cláusulas negociais e de seus pressupostos de revisão ou de resolução; (Incluído pela Lei nº 13.874, de 2019)" & #bl# & "II - a alocação de riscos definida pelas partes deve ser respeitada e observada; e (Incluído pela Lei nº 13.874, de 2019)." & #bl# & bold(underline("III - a revisão contratual somente ocorrerá de maneira excepcional e limitada.")) & " (Incluído pela Lei nº 13.874, de 2019)") & #bl#,
+							<cont> = <cont> + 1
+						}
+					}
+				}
+				operations {
+					print align(bold(<contTopic> & " Do Requerimento Processual"), "center") & #bl#,
+					use BRC_NaoCabimentoTutelaDeUrgencia,
+					use BRC_IntervencaoMinimaInadequacaoDaViaEleitaELitiganciaDeMaFe,
+					print #bl#,
+					<contTopic> = <contTopic> + 1
+				}
+			},
+			branch[BRC_Pedidos] {
+				declarations {
+					-<cont> : Integer {default = 1},
+					branch[BRC_Pedido] {
+						declarations {
+							-<contDoc> : Integer {default = 1}
+						}
+						operations {
+							if (<strDadosDoProcesso.justicaEstadualOuFederal> == "Justiça Comum") {
+								print <contTopic> & "." & <cont> & " sejam acolhidas as preliminares suscitadas para " & printIf(<strDadosDoProcesso.justicaEstadualOuFederal> == "Justiça Comum", " reconhecer a incompetência absoluta deste Juízo; determinando a remessa dos autos à Justiça Federal, em atenção aos arts. 64, §1º e 114, do CPC; 109, I, da CF e para reconhecer a ausência de pressupostos de constituição e desenvolvimento da ação e inexistência de direito líquido e certo;" & #bl#, "reconhecer a ausência de pressupostos de constituição e desenvolvimento da ação e inexistência de direito líquido e certo;" & #bl#),
+								<cont> = <cont> + 1
+							},
+							if (<strPreliminares.valorDaCausa>) {
+								print <contTopic> & "." & <cont> & " seja intimada a parte impetrante para a regularização do valor da causa, ou então seja este corrigido de ofício, nos termos do artigo 292, §3º do CPC;" & #bl#,
+								<cont> = <cont> + 1
+							},
+							print <contTopic> & "." & <cont> & "seja negado o pedido de gratuidade da justiça ante a ausência de comprovação da hipossuficiência financeira da parte impetrante" & #bl#,
+							<cont> = <cont> + 1,
+							print <contTopic> & "." & <cont> & " sejam julgados improcedentes os pedidos iniciais, conforme razões acima expostas;" & #bl#,
+							<cont> = <cont> + 1,
+							print <contTopic> & "." & <cont> & " seja reconsiderada a decisão que indeferiu o pedido de tutela provisória de urgência" & #bl#,
+							<cont> = <cont> + 1,
+							print <contTopic> & "." & <cont> & " seja determinado o desentranhamento dos documentos juntados pela parte impetrante em cópia simples" & #bl#,
+							<cont> = <cont> + 1,
+							print <contTopic> & "." & <cont> & " as intimações sejam efetuadas via Diário Oficial conforme determina o artigo 205, § 3º do CPC e a Resolução n. 234/2016 do CNJ, exclusivamente em nome do advogado Jacó Carlos Silva Coelho, inscrito na OAB/GO n. 13.721, endereço de e-mail intimacao@jacocoelho.com.br, sob pena de nulidade nos termos do disposto nos § 2º e 5º do artigo 272 e artigo 276 do mesmo diploma legal." & #bl#,
+							<cont> = <cont> + 1,
+							print <contTopic> & "." & <cont> & " finalmente, se proceda a juntada dos documentos abaixo enumerados, os quais são declarados autênticos e conferem com os originais, nos termos do Art. 425, IV do CPC:\b",
+							if("Procuração" IN <strDocumentos.documentos>) {
+								print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Procuração;", "10pt"),
+								<contDoc> = <contDoc> + 1
+							},
+							if("Substabelecimento" IN <strDocumentos.documentos>) {
+								print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Substabelecimento;", "10pt"),
+								<contDoc> = <contDoc> + 1
+							},
+							if("Contrato" IN <strDocumentos.documentos>) {
+								print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Contrato;", "10pt"),
+								<contDoc> = <contDoc> + 1
+							},
+							if("Documentos dos autos" IN <strDocumentos.documentos>) {
+								print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " Documentos dos autos;", "10pt"),
+								<contDoc> = <contDoc> + 1
+							},
+							if(<strDocumentos.incluirDoc>) {
+								foreach(<doc> IN |strDocumentos.doc|) where (separator = "%f.\b %s.\b %p.\b %l.\b") {
+									print #parag# & fontSize(<contTopic> & "." & <cont> & "." & <contDoc> & " " & firstUpper(trim(<doc>)) & ";", "10pt"),
+									<contDoc> = <contDoc> + 1
+								}
+							}
+						}
+					}
+				}
+				operations {
+					print align(bold(<contTopic> & " Pedido"), "center") & #bl#,
+					use BRC_Pedido
+				}
+			},
+			branch[BRC_Encerramento] {
+				declarations {
+					-|advogadoQueAssina| : Vector[String] {
+						name = "Advogados que assinam a peça"
+					}
+				}
+				operations {
+					foreach(<advogado> IN |strEncerramento.listaDeAdvogados|) {
+						|advogadoQueAssina|.add(<advogado>.getByKey("Nome") & "\b" & <advogado>.getByKey("OAB"))
+					},
+					print #bl#,
+					print #parag# & align("Termos em que, pede deferimento.", "center") & #bl#,
+					print #parag# & align(firstUpper(<strEncerramento.localAssinatura>) & "/" & <strEncerramento.estado>.getByKey("Sigla") & ", " & expandedDate(<strEncerramento.dataPeticao>) & ".", "center") & #bl#,
+
+					print "<table class='advsAssinam'>",
+					foreach(<i> IN [0:|advogadoQueAssina|.size() - 1]) {
+						if (<i>%2 == 1) { 
+							print "<tr>",
+								print "<td style='text-align:left'>" & <advogadoQueAssina{<i> - 1}> & "\b\b" & "</td>",
+								print "<td style='text-align:right'>" & <advogadoQueAssina{<i>}>  & "\b\b" & "</td>",
+							print "</tr>"
+						}
+						elseif (<i> == |advogadoQueAssina|.size() - 1) {
+							print "<tr>",
+								print "<td style='text-align:center' colspan='2'>" & <advogadoQueAssina{<i>}> & "</td>",
+							print "</tr>"
+						} 
+					},
+					print "</table>"
+				}
+			}
+ 		}
 		operations {
-			...
-		}
+			use BRC_Estilo,
+			use BRC_Logica,
+			use BRC_Enderecamento,
+			use BRC_Qualificacao,
+			use BRC_Preliminares,
+			use BRC_BreveHistorico,
+			use BRC_Merito,
+			use BRC_RequerimentoProcessual,
+			use BRC_Pedidos,
+			use BRC_Encerramento
+		}	
+ 	}
+ 	foot {
+ 		declarations {
+ 			branch[TOC_InfoProcessuais] {
+ 				name = "Informações processuais"
+				index = true
+ 				operations {
+ 					<strDadosDoProcesso>.ask()
+ 				}
+ 			},
+ 			branch[TOC_Impetrantes] {
+ 				name = "Impetrantes"
+				index = true
+ 				operations {
+ 					|vectAutor|.ask()
+ 				}
+ 			},
+ 			branch[TOC_Preliminares_Fatos] {
+ 				name = "Preliminares e fatos"
+				index = true
+ 				operations {
+ 					<strPreliminares>.ask(),
+ 					<strFatos>.ask()
+ 				}
+ 			},
+ 			branch[TOC_Merito_Requerimentos] {
+ 				name = "Mérito e requerimentos"
+				index = true
+ 				operations {
+ 					<strMerito>.ask(),
+ 					<strRequerimento>.ask(),
+ 					upload("Upload do quadro retirado da exordial do impetrante", "Quadro.png", "Faça o upload do quadro retirado da exordial do impetrante em formato .PNG", "+")
+ 				}
+ 			},
+ 			branch[TOC_Encerramento] {
+ 				name = "Encerramento"
+				index = true
+ 				operations {
+ 					<strDocumentos>.ask(),
+ 					<strEncerramento>.ask()
+ 				}
+ 			}
+ 		}
+ 		operations {
+ 			use TOC_InfoProcessuais,
+ 			use TOC_Impetrantes,
+ 			use TOC_Preliminares_Fatos,
+ 			use TOC_Merito_Requerimentos,
+ 			use TOC_Encerramento
+ 		}
  	}
 }
